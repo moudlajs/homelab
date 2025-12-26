@@ -1,0 +1,63 @@
+# .NET Core build outputs
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio 2015/2017/2019/2022 cache/options directory
+.vs/
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+*.DotSettings.user
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# NuGet Packages
+*.nupkg
+**/packages/*
+!**/packages/build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Docker
+docker-compose.override.yml
+.env
+*.log
+
+# Backup files
+*.bak
+*.swp
+*~
+
+# Application specific
+config/homelab-cli.yaml
