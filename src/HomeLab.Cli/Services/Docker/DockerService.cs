@@ -159,6 +159,24 @@ public class DockerService : IDockerService
         return result;
     }
 
+    public async Task<SystemInfo> GetSystemInfoAsync()
+    {
+        var info = await _client.System.GetSystemInfoAsync();
+
+        return new SystemInfo
+        {
+            ServerVersion = info.ServerVersion,
+            OperatingSystem = info.OperatingSystem,
+            Architecture = info.Architecture,
+            NCPU = info.NCPU,
+            MemTotal = info.MemTotal,
+            Containers = info.Containers,
+            ContainersRunning = info.ContainersRunning,
+            ContainersStopped = info.ContainersStopped,
+            Images = info.Images
+        };
+    }
+
     /// <summary>
     /// Helper method to calculate human-readable uptime.
     /// </summary>

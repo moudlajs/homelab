@@ -37,6 +37,11 @@ public interface IDockerService
     /// Removes unused images and containers.
     /// </summary>
     Task<CleanupResult> CleanupAsync(bool includeVolumes = false);
+
+    /// <summary>
+    /// Gets Docker system information.
+    /// </summary>
+    Task<SystemInfo> GetSystemInfoAsync();
 }
 
 /// <summary>
@@ -48,4 +53,20 @@ public class CleanupResult
     public int RemovedImages { get; set; }
     public int RemovedVolumes { get; set; }
     public ulong SpaceReclaimed { get; set; }
+}
+
+/// <summary>
+/// Docker system information.
+/// </summary>
+public class SystemInfo
+{
+    public string? ServerVersion { get; set; }
+    public string? OperatingSystem { get; set; }
+    public string? Architecture { get; set; }
+    public long NCPU { get; set; }
+    public long MemTotal { get; set; }
+    public long Containers { get; set; }
+    public long ContainersRunning { get; set; }
+    public long ContainersStopped { get; set; }
+    public long Images { get; set; }
 }
