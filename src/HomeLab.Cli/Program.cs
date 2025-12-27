@@ -4,6 +4,7 @@ using HomeLab.Cli.Commands;
 using HomeLab.Cli.Commands.Dns;
 using HomeLab.Cli.Commands.Monitor;
 using HomeLab.Cli.Commands.Vpn;
+using HomeLab.Cli.Commands.Remote;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Health;
@@ -98,6 +99,22 @@ public static class Program
                     .WithDescription("Display Prometheus scrape targets");
                 monitor.AddCommand<MonitorDashboardCommand>("dashboard")
                     .WithDescription("Open Grafana dashboards");
+            });
+
+            // Phase 5 - Day 6: Remote Management
+            config.AddBranch("remote", remote =>
+            {
+                remote.SetDescription("Manage remote homelab connections");
+                remote.AddCommand<RemoteConnectCommand>("connect")
+                    .WithDescription("Add or update a remote connection");
+                remote.AddCommand<RemoteListCommand>("list")
+                    .WithDescription("List all configured remote connections");
+                remote.AddCommand<RemoteStatusCommand>("status")
+                    .WithDescription("Check status of remote homelab");
+                remote.AddCommand<RemoteSyncCommand>("sync")
+                    .WithDescription("Sync docker-compose files with remote");
+                remote.AddCommand<RemoteRemoveCommand>("remove")
+                    .WithDescription("Remove a remote connection");
             });
         });
 
