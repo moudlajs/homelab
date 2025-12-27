@@ -2,6 +2,7 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using HomeLab.Cli.Services.UptimeKuma;
 using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.Output;
 using System.ComponentModel;
 
 namespace HomeLab.Cli.Commands.Uptime;
@@ -13,10 +14,12 @@ namespace HomeLab.Cli.Commands.Uptime;
 public class UptimeAlertsCommand : AsyncCommand<UptimeAlertsCommand.Settings>
 {
     private readonly IServiceClientFactory _clientFactory;
+    private readonly IOutputFormatter _formatter;
 
-    public UptimeAlertsCommand(IServiceClientFactory clientFactory)
+    public UptimeAlertsCommand(IServiceClientFactory clientFactory, IOutputFormatter formatter)
     {
         _clientFactory = clientFactory;
+        _formatter = formatter;
     }
 
     public class Settings : CommandSettings
@@ -25,6 +28,14 @@ public class UptimeAlertsCommand : AsyncCommand<UptimeAlertsCommand.Settings>
         [Description("Number of recent alerts to show (default: 10)")]
         [DefaultValue(10)]
         public int Limit { get; set; } = 10;
+
+        [CommandOption("--output <FORMAT>")]
+        [Description("Output format: table, json, csv, yaml")]
+        public string? OutputFormat { get; set; }
+
+        [CommandOption("--export <FILE>")]
+        [Description("Export to file")]
+        public string? ExportFile { get; set; }
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -47,6 +58,10 @@ public class UptimeAlertsCommand : AsyncCommand<UptimeAlertsCommand.Settings>
             });
 
         var incidents = await client.GetIncidentsAsync(settings.Limit);
+
+        // Try export if requested
+        if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, incidents))
+            return 0;
 
         if (incidents.Count == 0)
         {

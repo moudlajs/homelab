@@ -2,6 +2,7 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.Output;
 
 namespace HomeLab.Cli.Commands.Dns;
 
@@ -11,10 +12,12 @@ namespace HomeLab.Cli.Commands.Dns;
 public class DnsBlockedCommand : AsyncCommand<DnsBlockedCommand.Settings>
 {
     private readonly IServiceClientFactory _clientFactory;
+    private readonly IOutputFormatter _formatter;
 
-    public DnsBlockedCommand(IServiceClientFactory clientFactory)
+    public DnsBlockedCommand(IServiceClientFactory clientFactory, IOutputFormatter formatter)
     {
         _clientFactory = clientFactory;
+        _formatter = formatter;
     }
 
     public class Settings : CommandSettings
@@ -23,6 +26,14 @@ public class DnsBlockedCommand : AsyncCommand<DnsBlockedCommand.Settings>
         [Description("Number of domains to display")]
         [DefaultValue(10)]
         public int Limit { get; set; } = 10;
+
+        [CommandOption("--output <FORMAT>")]
+        [Description("Output format: table, json, csv, yaml")]
+        public string? OutputFormat { get; set; }
+
+        [CommandOption("--export <FILE>")]
+        [Description("Export to file")]
+        public string? ExportFile { get; set; }
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -33,6 +44,10 @@ public class DnsBlockedCommand : AsyncCommand<DnsBlockedCommand.Settings>
 
         // Get blocked domains
         var blockedDomains = await client.GetTopBlockedDomainsAsync(settings.Limit);
+
+        // Try export if requested
+        if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, blockedDomains))
+            return 0;
 
         if (blockedDomains.Count == 0)
         {
