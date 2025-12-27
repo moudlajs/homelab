@@ -31,7 +31,8 @@ public static class Program
             config.AddCommand<StatusCommand>("status")
                 .WithDescription("Display homelab status dashboard");
 
-            // More commands will be added in later phases
+            config.AddCommand<ServiceCommand>("service")
+                .WithDescription("Manage service lifecycle (start, stop, restart)");
         });
 
         return app.Run(args);
