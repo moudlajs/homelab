@@ -1,5 +1,6 @@
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Mocks;
+using HomeLab.Cli.Services.WireGuard;
 
 namespace HomeLab.Cli.Services.Abstractions;
 
@@ -36,8 +37,8 @@ public class ServiceClientFactory : IServiceClientFactory
             return new MockWireGuardClient();
         }
 
-        // TODO: Create real WireGuardClient in Day 3
-        throw new NotImplementedException("Real WireGuardClient not yet implemented. Set development.use_mock_services = true in config.");
+        // Real WireGuardClient implementation (Day 3)
+        return new WireGuardClient(_configService);
     }
 
     public IPrometheusClient CreatePrometheusClient()
