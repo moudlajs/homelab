@@ -53,11 +53,13 @@ artifacts/
 docker-compose.override.yml
 .env
 *.log
+data/
 
 # Backup files
 *.bak
 *.swp
 *~
+gg.md
 
 # Application specific
 config/homelab-cli.yaml
