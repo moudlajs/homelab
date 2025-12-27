@@ -48,11 +48,13 @@ public static class Program
             // Add description that shows in help text
             config.SetApplicationName("homelab");
 
-            // Register commands
+            // Register commands (with aliases for convenience)
             config.AddCommand<StatusCommand>("status")
+                .WithAlias("st")
                 .WithDescription("Display homelab status dashboard");
 
             config.AddCommand<ServiceCommand>("service")
+                .WithAlias("svc")
                 .WithDescription("Manage service lifecycle (start, stop, restart)");
 
             config.AddCommand<ConfigCommand>("config")
@@ -67,15 +69,25 @@ public static class Program
             config.AddCommand<CleanupCommand>("cleanup")
                 .WithDescription("Clean up unused Docker resources");
 
+            config.AddCommand<TuiCommand>("tui")
+                .WithAlias("ui")
+                .WithAlias("dashboard")
+                .WithDescription("Live dashboard (Terminal UI mode)");
+
             // Phase 5 - Day 3: VPN Management
             config.AddBranch("vpn", vpn =>
             {
                 vpn.SetDescription("Manage VPN peers and configuration");
                 vpn.AddCommand<VpnStatusCommand>("status")
+                    .WithAlias("ls")
+                    .WithAlias("list")
                     .WithDescription("Display VPN peer status");
                 vpn.AddCommand<VpnAddPeerCommand>("add-peer")
+                    .WithAlias("add")
                     .WithDescription("Add a new VPN peer");
                 vpn.AddCommand<VpnRemovePeerCommand>("remove-peer")
+                    .WithAlias("rm")
+                    .WithAlias("remove")
                     .WithDescription("Remove a VPN peer");
             });
 
@@ -84,8 +96,10 @@ public static class Program
             {
                 dns.SetDescription("Manage DNS and ad-blocking");
                 dns.AddCommand<DnsStatsCommand>("stats")
+                    .WithAlias("st")
                     .WithDescription("Display DNS statistics");
                 dns.AddCommand<DnsBlockedCommand>("blocked")
+                    .WithAlias("bl")
                     .WithDescription("Display recently blocked domains");
             });
 
@@ -94,10 +108,14 @@ public static class Program
             {
                 monitor.SetDescription("Monitor homelab metrics and alerts");
                 monitor.AddCommand<MonitorAlertsCommand>("alerts")
+                    .WithAlias("al")
                     .WithDescription("Display active Prometheus alerts");
                 monitor.AddCommand<MonitorTargetsCommand>("targets")
+                    .WithAlias("tg")
                     .WithDescription("Display Prometheus scrape targets");
                 monitor.AddCommand<MonitorDashboardCommand>("dashboard")
+                    .WithAlias("dash")
+                    .WithAlias("db")
                     .WithDescription("Open Grafana dashboards");
             });
 
