@@ -1,0 +1,84 @@
+namespace HomeLab.Cli.Services.Configuration;
+
+/// <summary>
+/// Interface for homelab configuration management.
+/// Reads settings from config/homelab-cli.yaml.
+/// </summary>
+public interface IHomelabConfigService
+{
+    /// <summary>
+    /// Loads the configuration from file.
+    /// </summary>
+    Task<HomelabConfig> LoadConfigAsync();
+
+    /// <summary>
+    /// Gets whether to use mock services for testing.
+    /// </summary>
+    bool UseMockServices { get; }
+
+    /// <summary>
+    /// Gets the Docker host connection string.
+    /// </summary>
+    string DockerHost { get; }
+
+    /// <summary>
+    /// Gets the path to the docker-compose file.
+    /// </summary>
+    string ComposeFilePath { get; }
+
+    /// <summary>
+    /// Gets service-specific configuration.
+    /// </summary>
+    ServiceConfig GetServiceConfig(string serviceName);
+}
+
+/// <summary>
+/// Complete homelab configuration.
+/// </summary>
+public class HomelabConfig
+{
+    public DevelopmentConfig Development { get; set; } = new();
+    public Dictionary<string, ServiceConfig> Services { get; set; } = new();
+    public RemoteConfig Remote { get; set; } = new();
+}
+
+/// <summary>
+/// Development environment settings.
+/// </summary>
+public class DevelopmentConfig
+{
+    public bool UseMockServices { get; set; }
+    public string DockerHost { get; set; } = "unix:///var/run/docker.sock";
+    public string ComposeFile { get; set; } = "~/Projects/homelab-mock/docker-compose.yml";
+}
+
+/// <summary>
+/// Service-specific configuration.
+/// </summary>
+public class ServiceConfig
+{
+    public string? Url { get; set; }
+    public string? Username { get; set; }
+    public string? Password { get; set; }
+    public string? ConfigPath { get; set; }
+    public bool Enabled { get; set; } = true;
+}
+
+/// <summary>
+/// Remote server configuration.
+/// </summary>
+public class RemoteConfig
+{
+    public RemoteHostConfig MacMini { get; set; } = new();
+}
+
+/// <summary>
+/// Remote host configuration.
+/// </summary>
+public class RemoteHostConfig
+{
+    public string Host { get; set; } = string.Empty;
+    public string User { get; set; } = string.Empty;
+    public string DockerHost { get; set; } = "unix:///var/run/docker.sock";
+    public string ComposeFile { get; set; } = string.Empty;
+}

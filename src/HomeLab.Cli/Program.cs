@@ -4,6 +4,7 @@ using HomeLab.Cli.Commands;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Health;
+using HomeLab.Cli.Services.Abstractions;
 
 namespace HomeLab.Cli;
 
@@ -17,9 +18,16 @@ public static class Program
     {
         // Setup dependency injection container
         var services = new ServiceCollection();
+
+        // Phase 1-4 services
         services.AddSingleton<IDockerService, DockerService>();
         services.AddSingleton<IConfigService, ConfigService>();
         services.AddSingleton<IHealthCheckService, HealthCheckService>();
+
+        // Phase 5 services - Configuration and service clients
+        services.AddSingleton<IHomelabConfigService, HomelabConfigService>();
+        services.AddSingleton<HttpClient>();
+        services.AddSingleton<IServiceClientFactory, ServiceClientFactory>();
 
         // Create registrar to connect Spectre with DI
         var registrar = new TypeRegistrar(services);
