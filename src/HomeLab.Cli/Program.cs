@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 using HomeLab.Cli.Commands;
+using HomeLab.Cli.Commands.Dns;
+using HomeLab.Cli.Commands.Monitor;
 using HomeLab.Cli.Commands.Vpn;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Configuration;
@@ -74,6 +76,28 @@ public static class Program
                     .WithDescription("Add a new VPN peer");
                 vpn.AddCommand<VpnRemovePeerCommand>("remove-peer")
                     .WithDescription("Remove a VPN peer");
+            });
+
+            // Phase 5 - Day 4: DNS Management
+            config.AddBranch("dns", dns =>
+            {
+                dns.SetDescription("Manage DNS and ad-blocking");
+                dns.AddCommand<DnsStatsCommand>("stats")
+                    .WithDescription("Display DNS statistics");
+                dns.AddCommand<DnsBlockedCommand>("blocked")
+                    .WithDescription("Display recently blocked domains");
+            });
+
+            // Phase 5 - Day 4: Monitoring
+            config.AddBranch("monitor", monitor =>
+            {
+                monitor.SetDescription("Monitor homelab metrics and alerts");
+                monitor.AddCommand<MonitorAlertsCommand>("alerts")
+                    .WithDescription("Display active Prometheus alerts");
+                monitor.AddCommand<MonitorTargetsCommand>("targets")
+                    .WithDescription("Display Prometheus scrape targets");
+                monitor.AddCommand<MonitorDashboardCommand>("dashboard")
+                    .WithDescription("Open Grafana dashboards");
             });
         });
 
