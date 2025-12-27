@@ -4,6 +4,7 @@ using System.ComponentModel;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Health;
 using HomeLab.Cli.Services.Dependencies;
+using HomeLab.Cli.Services.Output;
 
 namespace HomeLab.Cli.Commands;
 
@@ -16,14 +17,17 @@ public class StatusCommand : AsyncCommand<StatusCommand.Settings>
     private readonly IDockerService _dockerService;
     private readonly IServiceHealthCheckService _healthCheckService;
     private readonly ServiceDependencyGraph _dependencyGraph;
+    private readonly IOutputFormatter _outputFormatter;
 
     public StatusCommand(
         IDockerService dockerService,
-        IServiceHealthCheckService healthCheckService)
+        IServiceHealthCheckService healthCheckService,
+        IOutputFormatter outputFormatter)
     {
         _dockerService = dockerService;
         _healthCheckService = healthCheckService;
         _dependencyGraph = new ServiceDependencyGraph();
+        _outputFormatter = outputFormatter;
     }
 
     public class Settings : CommandSettings
@@ -42,10 +46,24 @@ public class StatusCommand : AsyncCommand<StatusCommand.Settings>
         [Description("Show service dependency graph")]
         [DefaultValue(false)]
         public bool ShowDependencies { get; set; }
+
+        [CommandOption("-o|--output <FORMAT>")]
+        [Description("Output format: table (default), json, csv, yaml")]
+        public string? Output { get; set; }
+
+        [CommandOption("--export <FILE>")]
+        [Description("Export to file instead of stdout")]
+        public string? ExportFile { get; set; }
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
+        // Check if export mode is requested
+        if (!string.IsNullOrEmpty(settings.Output))
+        {
+            return await ExportStatus(settings);
+        }
+
         if (settings.Watch)
         {
             return await RunWatchMode(settings, cancellationToken);
@@ -241,5 +259,53 @@ public class StatusCommand : AsyncCommand<StatusCommand.Settings>
         var details = string.Join(", ", metrics.Select(m => $"[dim]{m.Key}:[/] {m.Value}"));
 
         return details;
+    }
+
+    private async Task<int> ExportStatus(Settings settings)
+    {
+        // Parse output format
+        if (!Enum.TryParse<OutputFormat>(settings.Output, true, out var format))
+        {
+            AnsiConsole.MarkupLine($"[red]Invalid output format: {settings.Output}[/]");
+            AnsiConsole.MarkupLine("[yellow]Valid formats: table, json, csv, yaml[/]");
+            return 1;
+        }
+
+        // Get health check data
+        var healthResults = await _healthCheckService.CheckAllServicesAsync();
+
+        if (healthResults.Count == 0)
+        {
+            AnsiConsole.MarkupLine("[yellow]No services discovered.[/]");
+            return 0;
+        }
+
+        // Create simplified export model (without Spectre.Console formatting)
+        var exportData = healthResults.Select(s => new
+        {
+            Service = s.ServiceName,
+            Type = s.ServiceType.ToString(),
+            IsRunning = s.IsRunning,
+            IsHealthy = s.IsHealthy,
+            Status = s.IsHealthy ? "Healthy" : (s.IsRunning ? "Degraded" : "Unhealthy"),
+            Message = s.Message,
+            Metrics = s.ServiceHealth?.Metrics.ToDictionary(kv => kv.Key, kv => kv.Value) ?? new Dictionary<string, string>()
+        }).ToList();
+
+        // Format the output
+        var formatted = _outputFormatter.FormatCollection(exportData, format);
+
+        // Export to file or stdout
+        if (!string.IsNullOrEmpty(settings.ExportFile))
+        {
+            await File.WriteAllTextAsync(settings.ExportFile, formatted);
+            AnsiConsole.MarkupLine($"[green]✓ Exported to {settings.ExportFile}[/]");
+        }
+        else
+        {
+            Console.WriteLine(formatted);
+        }
+
+        return 0;
     }
 }

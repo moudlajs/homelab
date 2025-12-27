@@ -5,11 +5,14 @@ using HomeLab.Cli.Commands.Dns;
 using HomeLab.Cli.Commands.Monitor;
 using HomeLab.Cli.Commands.Vpn;
 using HomeLab.Cli.Commands.Remote;
+using HomeLab.Cli.Commands.Uptime;
+using HomeLab.Cli.Commands.Speedtest;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Health;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.ServiceDiscovery;
+using HomeLab.Cli.Services.Output;
 
 namespace HomeLab.Cli;
 
@@ -37,6 +40,9 @@ public static class Program
         // Phase 5 - Day 2: Service discovery and health checks
         services.AddSingleton<IServiceDiscoveryService, ServiceDiscoveryService>();
         services.AddSingleton<IServiceHealthCheckService, ServiceHealthCheckService>();
+
+        // Phase 6: Output formatting
+        services.AddSingleton<IOutputFormatter, OutputFormatter>();
 
         // Create registrar to connect Spectre with DI
         var registrar = new TypeRegistrar(services);
@@ -133,6 +139,32 @@ public static class Program
                     .WithDescription("Sync docker-compose files with remote");
                 remote.AddCommand<RemoteRemoveCommand>("remove")
                     .WithDescription("Remove a remote connection");
+            });
+
+            // Phase 6: Uptime Monitoring
+            config.AddBranch("uptime", uptime =>
+            {
+                uptime.SetDescription("Monitor service uptime and availability");
+                uptime.AddCommand<UptimeStatusCommand>("status")
+                    .WithAlias("st")
+                    .WithAlias("ls")
+                    .WithDescription("Display uptime monitoring status");
+                uptime.AddCommand<UptimeAlertsCommand>("alerts")
+                    .WithAlias("al")
+                    .WithDescription("Show recent uptime alerts and incidents");
+                uptime.AddCommand<UptimeAddCommand>("add")
+                    .WithDescription("Add a new service to monitor");
+            });
+
+            // Phase 6: Internet Speed Testing
+            config.AddBranch("speedtest", speedtest =>
+            {
+                speedtest.SetDescription("Monitor internet connection speed");
+                speedtest.AddCommand<SpeedtestRunCommand>("run")
+                    .WithDescription("Run a new speed test");
+                speedtest.AddCommand<SpeedtestStatsCommand>("stats")
+                    .WithAlias("st")
+                    .WithDescription("Display speed test statistics and history");
             });
         });
 
