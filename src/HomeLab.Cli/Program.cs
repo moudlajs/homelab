@@ -7,6 +7,7 @@ using HomeLab.Cli.Commands.Vpn;
 using HomeLab.Cli.Commands.Remote;
 using HomeLab.Cli.Commands.Uptime;
 using HomeLab.Cli.Commands.Speedtest;
+using HomeLab.Cli.Commands.Quick;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Health;
@@ -166,6 +167,23 @@ public static class Program
                     .WithAlias("st")
                     .WithDescription("Display speed test statistics and history");
             });
+
+            // Phase 7: Quick Actions - Fast operations for daily use
+            config.AddCommand<QuickRestartCommand>("quick-restart")
+                .WithAlias("qr")
+                .WithDescription("Quick restart a service (fast, no confirmation)");
+
+            config.AddCommand<QuickUpdateCommand>("quick-update")
+                .WithAlias("qu")
+                .WithDescription("Quick update service (pull + restart)");
+
+            config.AddCommand<QuickBackupCommand>("quick-backup")
+                .WithAlias("qb")
+                .WithDescription("Quick backup container configs");
+
+            config.AddCommand<QuickFixCommand>("quick-fix")
+                .WithAlias("qf")
+                .WithDescription("Quick fix service (stop, clear cache, restart)");
         });
 
         return app.Run(args);
