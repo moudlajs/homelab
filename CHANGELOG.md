@@ -5,7 +5,67 @@ All notable changes to the HomeLab CLI project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2025-01-XX
+## [1.2.0] - 2025-12-27
+
+### Added - Quality of Life Improvements
+
+#### TUI Mode - Live Dashboard
+- **Live Dashboard Command**: `homelab tui` (aliases: `ui`, `dashboard`)
+  - Real-time service health monitoring
+  - Auto-refreshing dashboard (configurable interval)
+  - Docker system information display
+  - Service status table with health indicators
+  - Container and image statistics
+  - Graceful Ctrl+C shutdown
+  - Beautiful Spectre.Console layout with panels
+
+#### Command Aliases (18 shortcuts!)
+- **Main Commands**:
+  - `homelab st` → `homelab status`
+  - `homelab svc` → `homelab service`
+  - `homelab ui` → `homelab tui`
+  - `homelab dashboard` → `homelab tui`
+- **VPN Commands**:
+  - `homelab vpn ls` → `homelab vpn status`
+  - `homelab vpn list` → `homelab vpn status`
+  - `homelab vpn add` → `homelab vpn add-peer`
+  - `homelab vpn rm` → `homelab vpn remove-peer`
+  - `homelab vpn remove` → `homelab vpn remove-peer`
+- **DNS Commands**:
+  - `homelab dns st` → `homelab dns stats`
+  - `homelab dns bl` → `homelab dns blocked`
+- **Monitor Commands**:
+  - `homelab monitor al` → `homelab monitor alerts`
+  - `homelab monitor tg` → `homelab monitor targets`
+  - `homelab monitor dash` → `homelab monitor dashboard`
+  - `homelab monitor db` → `homelab monitor dashboard`
+
+#### Enhanced Docker Service
+- **System Information**: `GetSystemInfoAsync()` method
+  - Docker version and operating system
+  - Architecture and CPU count
+  - Total memory information
+  - Container counts (running/stopped/total)
+  - Image count
+  - Used in TUI dashboard system panel
+
+### Testing
+- Comprehensive testing with real Docker services
+- Tested with AdGuard Home, WireGuard, Prometheus, Grafana, Node Exporter
+- All 18 aliases verified working
+- TUI mode live update tested
+- Complete test report in `TEST_ALL_FEATURES.md`
+
+### Documentation
+- **New Files**:
+  - `TEST_ALL_FEATURES.md` - Comprehensive test results
+  - `docs/HOW_TO_USE.md` - Beginner-friendly usage guide
+  - `docs/QUICK_START.md` - Technical reference
+  - `docs/TESTING_REPORT.md` - Initial test results
+  - `docs/FINAL_SUMMARY.md` - Complete feature summary
+  - `docker-compose.yml` - Local testing setup
+
+## [1.1.0] - 2025-12-27
 
 ### Added - Phase 5: HomeLab-Specific Service Integration
 
