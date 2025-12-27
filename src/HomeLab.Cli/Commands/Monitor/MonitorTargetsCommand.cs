@@ -1,22 +1,37 @@
 using Spectre.Console;
 using Spectre.Console.Cli;
 using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.Output;
+using System.ComponentModel;
 
 namespace HomeLab.Cli.Commands.Monitor;
 
 /// <summary>
 /// Displays Prometheus scrape targets status.
 /// </summary>
-public class MonitorTargetsCommand : AsyncCommand
+public class MonitorTargetsCommand : AsyncCommand<MonitorTargetsCommand.Settings>
 {
     private readonly IServiceClientFactory _clientFactory;
+    private readonly IOutputFormatter _formatter;
 
-    public MonitorTargetsCommand(IServiceClientFactory clientFactory)
+    public class Settings : CommandSettings
     {
-        _clientFactory = clientFactory;
+        [CommandOption("--output <FORMAT>")]
+        [Description("Output format: table, json, csv, yaml")]
+        public string? OutputFormat { get; set; }
+
+        [CommandOption("--export <FILE>")]
+        [Description("Export to file")]
+        public string? ExportFile { get; set; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, CancellationToken cancellationToken)
+    public MonitorTargetsCommand(IServiceClientFactory clientFactory, IOutputFormatter formatter)
+    {
+        _clientFactory = clientFactory;
+        _formatter = formatter;
+    }
+
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         AnsiConsole.MarkupLine("[blue]Fetching Prometheus targets...[/]\n");
 
@@ -24,6 +39,10 @@ public class MonitorTargetsCommand : AsyncCommand
 
         // Get targets
         var targets = await client.GetTargetsAsync();
+
+        // Try export if requested
+        if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, targets))
+            return 0;
 
         if (targets.Count == 0)
         {

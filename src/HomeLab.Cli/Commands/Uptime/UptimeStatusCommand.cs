@@ -2,6 +2,8 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using HomeLab.Cli.Services.UptimeKuma;
 using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.Output;
+using System.ComponentModel;
 
 namespace HomeLab.Cli.Commands.Uptime;
 
@@ -9,16 +11,29 @@ namespace HomeLab.Cli.Commands.Uptime;
 /// Displays uptime monitoring status for all services.
 /// Shows which services are up/down and their uptime percentages.
 /// </summary>
-public class UptimeStatusCommand : AsyncCommand
+public class UptimeStatusCommand : AsyncCommand<UptimeStatusCommand.Settings>
 {
     private readonly IServiceClientFactory _clientFactory;
+    private readonly IOutputFormatter _formatter;
 
-    public UptimeStatusCommand(IServiceClientFactory clientFactory)
+    public class Settings : CommandSettings
     {
-        _clientFactory = clientFactory;
+        [CommandOption("--output <FORMAT>")]
+        [Description("Output format: table, json, csv, yaml")]
+        public string? OutputFormat { get; set; }
+
+        [CommandOption("--export <FILE>")]
+        [Description("Export to file")]
+        public string? ExportFile { get; set; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, CancellationToken cancellationToken)
+    public UptimeStatusCommand(IServiceClientFactory clientFactory, IOutputFormatter formatter)
+    {
+        _clientFactory = clientFactory;
+        _formatter = formatter;
+    }
+
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         AnsiConsole.Write(
             new FigletText("Uptime Status")
@@ -52,6 +67,10 @@ public class UptimeStatusCommand : AsyncCommand
 
         // Get all monitors
         var monitors = await client.GetMonitorsAsync();
+
+        // Try export if requested
+        if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, monitors))
+            return 0;
 
         if (monitors.Count == 0)
         {

@@ -1,22 +1,37 @@
 using Spectre.Console;
 using Spectre.Console.Cli;
 using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.Output;
+using System.ComponentModel;
 
 namespace HomeLab.Cli.Commands.Dns;
 
 /// <summary>
 /// Displays DNS statistics from AdGuard Home.
 /// </summary>
-public class DnsStatsCommand : AsyncCommand
+public class DnsStatsCommand : AsyncCommand<DnsStatsCommand.Settings>
 {
     private readonly IServiceClientFactory _clientFactory;
+    private readonly IOutputFormatter _formatter;
 
-    public DnsStatsCommand(IServiceClientFactory clientFactory)
+    public class Settings : CommandSettings
     {
-        _clientFactory = clientFactory;
+        [CommandOption("--output <FORMAT>")]
+        [Description("Output format: table, json, csv, yaml")]
+        public string? OutputFormat { get; set; }
+
+        [CommandOption("--export <FILE>")]
+        [Description("Export to file")]
+        public string? ExportFile { get; set; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, CancellationToken cancellationToken)
+    public DnsStatsCommand(IServiceClientFactory clientFactory, IOutputFormatter formatter)
+    {
+        _clientFactory = clientFactory;
+        _formatter = formatter;
+    }
+
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         AnsiConsole.Write(
             new FigletText("DNS Stats")
@@ -47,6 +62,10 @@ public class DnsStatsCommand : AsyncCommand
 
         // Get DNS stats
         var stats = await client.GetStatsAsync();
+
+        // Try export if requested
+        if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, stats))
+            return 0;
 
         // Create stats panel
         var grid = new Grid();

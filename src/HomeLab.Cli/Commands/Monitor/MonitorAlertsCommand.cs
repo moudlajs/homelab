@@ -1,22 +1,37 @@
 using Spectre.Console;
 using Spectre.Console.Cli;
 using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.Output;
+using System.ComponentModel;
 
 namespace HomeLab.Cli.Commands.Monitor;
 
 /// <summary>
 /// Displays active Prometheus alerts.
 /// </summary>
-public class MonitorAlertsCommand : AsyncCommand
+public class MonitorAlertsCommand : AsyncCommand<MonitorAlertsCommand.Settings>
 {
     private readonly IServiceClientFactory _clientFactory;
+    private readonly IOutputFormatter _formatter;
 
-    public MonitorAlertsCommand(IServiceClientFactory clientFactory)
+    public class Settings : CommandSettings
     {
-        _clientFactory = clientFactory;
+        [CommandOption("--output <FORMAT>")]
+        [Description("Output format: table, json, csv, yaml")]
+        public string? OutputFormat { get; set; }
+
+        [CommandOption("--export <FILE>")]
+        [Description("Export to file")]
+        public string? ExportFile { get; set; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, CancellationToken cancellationToken)
+    public MonitorAlertsCommand(IServiceClientFactory clientFactory, IOutputFormatter formatter)
+    {
+        _clientFactory = clientFactory;
+        _formatter = formatter;
+    }
+
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         AnsiConsole.Write(
             new FigletText("Alerts")
@@ -47,6 +62,10 @@ public class MonitorAlertsCommand : AsyncCommand
 
         // Get active alerts
         var alerts = await client.GetActiveAlertsAsync();
+
+        // Try export if requested
+        if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, alerts))
+            return 0;
 
         if (alerts.Count == 0)
         {
