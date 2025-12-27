@@ -1,0 +1,32 @@
+development:
+  use_mock_services: false  # false = real Docker services, true = mock implementations
+  docker_host: "unix:///var/run/docker.sock"
+  compose_file: "~/Projects/homelab-mock/docker-compose.yml"
+
+services:
+  adguard:
+    url: "http://localhost:3000"
+    username: "admin"
+    password: "admin"
+    enabled: true
+
+  wireguard:
+    config_path: "~/Projects/homelab-mock/data/wireguard"
+    enabled: true
+
+  prometheus:
+    url: "http://localhost:9090"
+    enabled: true
+
+  grafana:
+    url: "http://localhost:3001"
+    username: "admin"
+    password: "admin"
+    enabled: true
+
+remote:
+  mac_mini:
+    host: "192.168.1.100"  # Update with your Mac Mini IP
+    user: "your-username"   # Update with your username
+    docker_host: "unix:///var/run/docker.sock"
+    compose_file: "/path/to/mac-mini/docker-compose.yml"
