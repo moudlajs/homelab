@@ -1,6 +1,6 @@
 # Phase 5: HomeLab-Specific Service Integration - COMPLETE ✅
 
-**Version:** 1.5.0
+**Version:** 1.1.0
 **Completion Date:** January 2025
 **Status:** All features implemented and tested
 
@@ -142,14 +142,14 @@ Phase 5 transformed the HomeLab CLI from a generic Docker container manager into
 
 ### Day 7: Polish, Testing & Release ✅
 **Status:** Complete
-**Branch:** `release/v1.5.0`
+**Branch:** `release/v1.1.0`
 
 **Delivered:**
-- CHANGELOG.md with comprehensive v1.5.0 notes
+- CHANGELOG.md with comprehensive v1.1.0 notes
 - README.md updated with all Phase 5 features
 - Documentation for all new commands
 - Final build verification
-- v1.5.0 release preparation
+- v1.1.0 release preparation
 
 ---
 
@@ -309,7 +309,7 @@ All Phase 5 success criteria have been achieved:
 8. ✅ All features thoroughly tested
 9. ✅ Documentation complete
 10. ✅ All changes went through PR + code review
-11. ✅ v1.5.0 ready for release
+11. ✅ v1.1.0 ready for release
 
 ---
 
@@ -327,7 +327,7 @@ Potential future enhancements:
 ---
 
 **Phase 5 Status:** ✅ **COMPLETE**
-**Release Version:** v1.5.0
+**Release Version:** v1.1.0
 **Ready for Production:** Yes
 
 ---
