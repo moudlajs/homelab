@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/github/license/moudlajs/homelab)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/)
 
-A beautiful, powerful CLI tool for managing your homelab Docker containers, built with ❤️ using Spectre.Console.
+A beautiful, powerful CLI tool for managing your homelab with service-specific integrations for VPN, DNS, monitoring, and remote management. Built with ❤️ using Spectre.Console.
 
 ![Screenshot](docs/screenshot.png)
 
@@ -14,10 +14,38 @@ A beautiful, powerful CLI tool for managing your homelab Docker containers, buil
 
 ## ✨ Features
 
-### 📊 Status Dashboard
-- View all container statuses at a glance
-- Health monitoring
-- Beautiful table output with color coding
+### 📊 Enhanced Status Dashboard
+- **Service Discovery**: Auto-detect services from docker-compose.yml
+- **Health Monitoring**: Combined Docker + service-specific health checks
+- **Dependency Visualization**: Show service relationships and startup order
+- **Watch Mode**: Live status updates with configurable refresh interval
+- **Color Coding**: 🟢 Healthy, 🟡 Degraded, 🔴 Unhealthy
+- **Service Metrics**: Display service-specific statistics
+
+### 🔐 VPN Management (WireGuard)
+- **Peer Management**: Add, remove, and list VPN peers
+- **QR Code Generation**: Easy mobile device configuration
+- **Key Generation**: Proper Curve25519 key generation with clamping
+- **Configuration Export**: Generate peer configuration files
+
+### 🌐 DNS Management (AdGuard Home)
+- **Statistics Dashboard**: View DNS query statistics
+- **Blocked Domains**: Top blocked domains with ranking
+- **Visualizations**: Bar charts and formatted statistics
+- **Filter Management**: Update DNS filters
+
+### 📈 Monitoring Integration
+- **Prometheus Alerts**: Display active alerts with severity coloring
+- **Scrape Targets**: Monitor Prometheus scrape targets status
+- **Grafana Dashboards**: List and open dashboards in browser
+- **Metrics Querying**: Execute PromQL queries
+
+### 🌍 Remote Management
+- **SSH Integration**: Manage remote homelabs via SSH
+- **Connection Profiles**: Save and manage multiple remote connections
+- **Remote Status**: Check remote homelab status and Docker info
+- **File Sync**: Push/pull docker-compose files between local and remote
+- **SSH Key Support**: Secure key-based authentication
 
 ### 🎮 Service Control
 - Start, stop, and restart containers
@@ -70,28 +98,51 @@ homelab --help
 # View homelab status
 homelab status
 
-# Start a service
+# View status with dependency graph
+homelab status --show-dependencies
+
+# Watch mode (live updates every 5s)
+homelab status --watch
+
+# VPN: Add a new peer
+homelab vpn add-peer danny-phone
+
+# VPN: List all peers
+homelab vpn status
+
+# DNS: View statistics
+homelab dns stats
+
+# DNS: Show blocked domains
+homelab dns blocked
+
+# Monitoring: Show active alerts
+homelab monitor alerts
+
+# Monitoring: Check scrape targets
+homelab monitor targets
+
+# Monitoring: Open Grafana dashboard
+homelab monitor dashboard
+
+# Remote: Add a connection
+homelab remote connect mac-mini 192.168.1.100 -u admin -k ~/.ssh/id_rsa
+
+# Remote: Check remote status
+homelab remote status
+
+# Remote: Sync compose file
+homelab remote sync --push
+
+# Service control
 homelab service start adguard
-
-# Stop a service
 homelab service stop wireguard
-
-# Restart a service
 homelab service restart grafana
 
-# View logs (last 100 lines)
-homelab logs adguard
-
-# View more logs
+# View logs
 homelab logs adguard -n 500
 
-# Update an image
-homelab update nginx:latest
-
-# Clean up unused containers and images
-homelab cleanup
-
-# Also clean up volumes
+# Clean up
 homelab cleanup -v
 ```
 
@@ -99,27 +150,277 @@ homelab cleanup -v
 
 ## 📖 Commands
 
-### `homelab status`
+### `homelab status [options]`
 
-Display a dashboard of all your homelab containers with their current status and uptime.
+Display a comprehensive dashboard of your homelab services with health monitoring and dependency tracking.
+
+**Options:**
+- `--show-dependencies` - Display service dependency graph
+- `--watch` - Live status updates (refresh every 5s)
+- `--interval <seconds>` - Custom refresh interval for watch mode
 
 ```bash
+# Basic status
 homelab status
+
+# Show dependency graph
+homelab status --show-dependencies
+
+# Watch mode (live updates)
+homelab status --watch
+
+# Custom refresh interval
+homelab status --watch --interval 10
 ```
 
-**Output:**
-```
-╦ ╦┌─┐┌┬┐┌─┐┬  ┌─┐┌┐   ╔═╗┌┬┐┌─┐┌┬┐┬ ┬┌─┐
-╠═╣│ ││││├┤ │  ├─┤├┴┐  ╚═╗ │ ├─┤ │ │ │└─┐
-╩ ╩└─┘┴ ┴└─┘┴─┘┴ ┴└─┘  ╚═╝ ┴ ┴ ┴ ┴ └─┘└─┘
+**Features:**
+- Service discovery from docker-compose.yml
+- Combined Docker + service-specific health checks
+- Color-coded status (🟢 Healthy, 🟡 Degraded, 🔴 Unhealthy)
+- Service-specific metrics
+- Dependency visualization
 
-╭───────────┬─────────┬─────────╮
-│ Container │ Status  │ Uptime  │
-├───────────┼─────────┼─────────┤
-│ adguard   │ Running │ 3d 5h   │
-│ wireguard │ Running │ 3d 5h   │
-│ grafana   │ Stopped │ N/A     │
-╰───────────┴─────────┴─────────╯
+---
+
+### `homelab vpn <command>`
+
+Manage WireGuard VPN peers and configurations.
+
+#### `homelab vpn status`
+
+Display all VPN peers with connection statistics.
+
+```bash
+homelab vpn status
+```
+
+#### `homelab vpn add-peer <name>`
+
+Add a new VPN peer with automatic configuration generation.
+
+**Options:**
+- `--ip <address>` - Assign specific IP address to peer
+- `--qr` - Generate QR code for mobile devices (default: true)
+- `--export` - Export configuration to file
+
+```bash
+# Add peer with QR code
+homelab vpn add-peer danny-phone
+
+# Add peer with specific IP
+homelab vpn add-peer laptop --ip 10.8.0.5
+
+# Export configuration file
+homelab vpn add-peer server --export
+```
+
+**Features:**
+- Automatic IP assignment
+- Proper Curve25519 key generation
+- QR code generation for mobile devices
+- Configuration file export
+
+#### `homelab vpn remove-peer <name>`
+
+Remove a VPN peer.
+
+```bash
+homelab vpn remove-peer old-device
+```
+
+---
+
+### `homelab dns <command>`
+
+Manage DNS and ad-blocking with AdGuard Home.
+
+#### `homelab dns stats`
+
+Display DNS statistics with visualizations.
+
+```bash
+homelab dns stats
+```
+
+**Shows:**
+- Total queries
+- Blocked queries and percentage
+- Safe browsing blocks
+- Parental control blocks
+- Query distribution bar chart
+
+#### `homelab dns blocked [options]`
+
+Show top blocked domains.
+
+**Options:**
+- `-n, --limit <count>` - Number of domains to display (default: 10)
+
+```bash
+# Top 10 blocked domains
+homelab dns blocked
+
+# Top 50 blocked domains
+homelab dns blocked -n 50
+```
+
+---
+
+### `homelab monitor <command>`
+
+Monitor homelab metrics and alerts with Prometheus/Grafana.
+
+#### `homelab monitor alerts`
+
+Display active Prometheus alerts with severity coloring.
+
+```bash
+homelab monitor alerts
+```
+
+**Features:**
+- Severity color coding (Critical: red, Warning: yellow)
+- Active duration tracking
+- Alert summaries and descriptions
+
+#### `homelab monitor targets`
+
+Show Prometheus scrape targets status.
+
+```bash
+homelab monitor targets
+```
+
+**Shows:**
+- Target health (up/down)
+- Last scrape time
+- Scrape duration
+- Target summary statistics
+
+#### `homelab monitor dashboard [uid]`
+
+List or open Grafana dashboards.
+
+```bash
+# List all dashboards
+homelab monitor dashboard
+
+# Open specific dashboard
+homelab monitor dashboard prometheus-stats
+```
+
+**Features:**
+- Dashboard listing with tags
+- Star indicators for favorites
+- Direct browser integration
+- Dashboard URLs displayed
+
+---
+
+### `homelab remote <command>`
+
+Manage remote homelab connections via SSH.
+
+#### `homelab remote connect <name> <host> [options]`
+
+Add or update a remote connection profile.
+
+**Options:**
+- `-u, --username <user>` - SSH username
+- `-p, --port <port>` - SSH port (default: 22)
+- `-k, --key-file <path>` - Path to SSH private key
+- `--docker-socket <path>` - Docker socket path on remote
+- `--compose-file <path>` - docker-compose.yml path on remote
+- `--default` - Set as default connection
+- `--test` - Test connection before saving (default: true)
+
+```bash
+# Add connection with SSH key
+homelab remote connect mac-mini 192.168.1.100 -u admin -k ~/.ssh/id_rsa --default
+
+# Add with custom ports and paths
+homelab remote connect server 10.0.0.5 -u root --port 2222 --compose-file /opt/homelab/docker-compose.yml
+```
+
+**Features:**
+- Connection testing before saving
+- Docker status verification
+- SSH key authentication
+- Profile persistence in ~/.homelab/remotes.yaml
+
+#### `homelab remote list`
+
+List all configured remote connections.
+
+```bash
+homelab remote list
+```
+
+**Shows:**
+- Connection name
+- Host and port
+- Username
+- Default connection indicator (⭐)
+- Last connected time
+
+#### `homelab remote status [name]`
+
+Check status of remote homelab.
+
+```bash
+# Use default connection
+homelab remote status
+
+# Specific connection
+homelab remote status mac-mini
+```
+
+**Shows:**
+- SSH connection status
+- Docker version and status
+- System info (CPUs, memory)
+- Running containers
+
+#### `homelab remote sync [name] [options]`
+
+Sync docker-compose files between local and remote.
+
+**Options:**
+- `--push` - Push local file to remote
+- `--pull` - Pull remote file to local
+- `--local-file <path>` - Local file path (default: docker-compose.yml)
+- `--remote-file <path>` - Remote file path
+
+```bash
+# Push local to remote (default connection)
+homelab remote sync --push
+
+# Pull from specific remote
+homelab remote sync mac-mini --pull
+
+# Custom file paths
+homelab remote sync --push --local-file custom-compose.yml
+```
+
+**Features:**
+- Bidirectional sync
+- Overwrite confirmation
+- File size reporting
+- SFTP file transfer
+
+#### `homelab remote remove <name> [options]`
+
+Remove a remote connection profile.
+
+**Options:**
+- `-y, --yes` - Skip confirmation prompt
+
+```bash
+# Remove with confirmation
+homelab remote remove old-server
+
+# Skip confirmation
+homelab remote remove old-server -y
 ```
 
 ---
@@ -261,9 +562,13 @@ Built with clean architecture principles:
 ```
 
 **Technologies:**
-- [.NET 8](https://dotnet.microsoft.com/)
+- [.NET 8](https://dotnet.microsoft.com/) - Cross-platform framework
 - [Spectre.Console](https://spectreconsole.net/) - Beautiful terminal UI
 - [Docker.DotNet](https://github.com/dotnet/Docker.DotNet) - Docker API SDK
+- [SSH.NET](https://github.com/sshnet/SSH.NET) - SSH/SFTP client
+- [YamlDotNet](https://github.com/aaubry/YamlDotNet) - YAML parsing
+- [QRCoder](https://github.com/codebude/QRCoder) - QR code generation
+- System.Net.Http.Json - HTTP API integration
 - Dependency Injection with Microsoft.Extensions
 
 ---
@@ -308,15 +613,26 @@ homelab/
 ├── src/
 │   └── HomeLab.Cli/
 │       ├── Commands/           # CLI commands
+│       │   ├── Dns/            # DNS management
+│       │   ├── Monitor/        # Monitoring commands
+│       │   ├── Remote/         # Remote management
+│       │   └── Vpn/            # VPN management
 │       ├── Services/           # Business logic
-│       │   ├── Docker/         # Docker operations
+│       │   ├── AdGuard/        # AdGuard Home integration
 │       │   ├── Configuration/  # Config management
-│       │   └── Health/         # Health checks
+│       │   ├── Dependencies/   # Dependency graph
+│       │   ├── Docker/         # Docker operations
+│       │   ├── Grafana/        # Grafana integration
+│       │   ├── Health/         # Health checks
+│       │   ├── Prometheus/     # Prometheus integration
+│       │   ├── Remote/         # SSH/Remote services
+│       │   ├── ServiceDiscovery/ # Service discovery
+│       │   └── WireGuard/      # WireGuard VPN
 │       ├── Models/             # Data models
 │       └── Program.cs          # Entry point
 ├── config/                     # Configuration files
 ├── docs/                       # Documentation
-└── scripts/                    # Helper scripts
+└── CHANGELOG.md                # Version history
 ```
 
 ---
@@ -365,16 +681,24 @@ chmod +x /usr/local/bin/homelab
 
 ## 🗺️ Roadmap
 
-Future enhancements:
+### ✅ Completed (v1.5.0)
+
+- [x] Service dependency management
+- [x] Remote homelab management (SSH)
+- [x] Health check monitoring
+- [x] Service-specific integrations (VPN, DNS, Monitoring)
+
+### 🚧 Future Enhancements
 
 - [ ] Real-time log following (`-f` flag)
-- [ ] Service dependency management
-- [ ] Health check alerting
 - [ ] Automated backup scheduling
-- [ ] Notification integrations (Slack, Discord)
-- [ ] Container resource monitoring
-- [ ] TUI (Terminal UI) mode
-- [ ] Remote homelab management (SSH)
+- [ ] Notification integrations (Slack, Discord, Webhook)
+- [ ] Container resource monitoring (CPU, memory, network)
+- [ ] TUI (Terminal UI) mode with live updates
+- [ ] Multi-homelab orchestration
+- [ ] Automated service updates with rollback
+- [ ] Integration testing framework
+- [ ] Performance metrics collection
 
 ---
 
