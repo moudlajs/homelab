@@ -1,7 +1,9 @@
 using Spectre.Console;
 using Spectre.Console.Cli;
+using System.ComponentModel;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Health;
+using HomeLab.Cli.Services.Dependencies;
 
 namespace HomeLab.Cli.Commands;
 
@@ -9,10 +11,11 @@ namespace HomeLab.Cli.Commands;
 /// Displays the homelab status dashboard.
 /// Shows running containers, resource usage, and health checks.
 /// </summary>
-public class StatusCommand : AsyncCommand
+public class StatusCommand : AsyncCommand<StatusCommand.Settings>
 {
     private readonly IDockerService _dockerService;
     private readonly IServiceHealthCheckService _healthCheckService;
+    private readonly ServiceDependencyGraph _dependencyGraph;
 
     public StatusCommand(
         IDockerService dockerService,
@@ -20,9 +23,65 @@ public class StatusCommand : AsyncCommand
     {
         _dockerService = dockerService;
         _healthCheckService = healthCheckService;
+        _dependencyGraph = new ServiceDependencyGraph();
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, CancellationToken cancellationToken)
+    public class Settings : CommandSettings
+    {
+        [CommandOption("--watch")]
+        [Description("Watch mode - refresh status every few seconds")]
+        [DefaultValue(false)]
+        public bool Watch { get; set; }
+
+        [CommandOption("--interval")]
+        [Description("Refresh interval in seconds for watch mode")]
+        [DefaultValue(5)]
+        public int Interval { get; set; } = 5;
+
+        [CommandOption("--show-dependencies")]
+        [Description("Show service dependency graph")]
+        [DefaultValue(false)]
+        public bool ShowDependencies { get; set; }
+    }
+
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    {
+        if (settings.Watch)
+        {
+            return await RunWatchMode(settings, cancellationToken);
+        }
+
+        return await DisplayStatus(settings);
+    }
+
+    private async Task<int> RunWatchMode(Settings settings, CancellationToken cancellationToken)
+    {
+        Console.Clear();
+
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                Console.SetCursorPosition(0, 0);
+                await DisplayStatus(settings);
+
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine($"[dim]Press Ctrl+C to exit watch mode. Refreshing every {settings.Interval}s...[/]");
+
+                await Task.Delay(TimeSpan.FromSeconds(settings.Interval), cancellationToken);
+                Console.Clear();
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // User pressed Ctrl+C
+            AnsiConsole.MarkupLine("\n[yellow]Watch mode stopped.[/]");
+        }
+
+        return 0;
+    }
+
+    private async Task<int> DisplayStatus(Settings settings)
     {
         // Show a fancy header
         AnsiConsole.Write(
@@ -106,7 +165,68 @@ public class StatusCommand : AsyncCommand
                 .RoundedBorder()
         );
 
+        // Show dependency graph if requested
+        if (settings.ShowDependencies)
+        {
+            AnsiConsole.WriteLine();
+            DisplayDependencyGraph();
+        }
+
         return 0;
+    }
+
+    private void DisplayDependencyGraph()
+    {
+        var dependencies = _dependencyGraph.GetAllDependencies().ToList();
+
+        if (dependencies.Count == 0)
+        {
+            AnsiConsole.MarkupLine("[dim]No dependencies defined for current services.[/]");
+            return;
+        }
+
+        var tree = new Tree("[yellow]Service Dependencies[/]");
+
+        foreach (var dep in dependencies.OrderBy(d => d.ServiceName))
+        {
+            var typeIndicator = dep.Type == Models.DependencyType.Hard ? "[red]●[/]" : "[yellow]○[/]";
+            var node = tree.AddNode($"{typeIndicator} [cyan]{dep.ServiceName}[/]");
+
+            foreach (var dependency in dep.DependsOn)
+            {
+                var dependencyNode = node.AddNode($"[dim]└─[/] [green]{dependency}[/]");
+
+                if (!string.IsNullOrEmpty(dep.Reason))
+                {
+                    dependencyNode.AddNode($"[dim italic]{dep.Reason}[/]");
+                }
+            }
+        }
+
+        var panel = new Panel(tree)
+            .Header("[yellow]Dependency Graph[/]")
+            .BorderColor(Color.Blue)
+            .RoundedBorder();
+
+        AnsiConsole.Write(panel);
+
+        // Legend
+        var legendGrid = new Grid();
+        legendGrid.AddColumn();
+        legendGrid.AddColumn();
+        legendGrid.AddColumn();
+        legendGrid.AddRow(
+            "[red]● Hard dependency[/]",
+            "[yellow]○ Soft dependency[/]",
+            "[dim]Service requires these to start[/]"
+        );
+
+        AnsiConsole.Write(
+            new Panel(legendGrid)
+                .Header("[dim]Legend[/]")
+                .BorderColor(Color.Grey)
+                .RoundedBorder()
+        );
     }
 
     private string GetServiceDetails(ServiceHealthResult service)
