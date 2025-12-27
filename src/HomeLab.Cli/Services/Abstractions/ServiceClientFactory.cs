@@ -4,6 +4,8 @@ using HomeLab.Cli.Services.Grafana;
 using HomeLab.Cli.Services.Mocks;
 using HomeLab.Cli.Services.Prometheus;
 using HomeLab.Cli.Services.WireGuard;
+using HomeLab.Cli.Services.UptimeKuma;
+using HomeLab.Cli.Services.Speedtest;
 
 namespace HomeLab.Cli.Services.Abstractions;
 
@@ -61,5 +63,21 @@ public class ServiceClientFactory : IServiceClientFactory
         }
 
         return new GrafanaClient(_configService, _httpClient);
+    }
+
+    public UptimeKumaClient CreateUptimeKumaClient()
+    {
+        // For now, always return real client (uses mock data internally if service unavailable)
+        // TODO: Add uptime-kuma URL to config file
+        var baseUrl = "http://localhost:3001";
+        return new UptimeKumaClient(_httpClient, baseUrl);
+    }
+
+    public SpeedtestClient CreateSpeedtestClient()
+    {
+        // For now, always return real client (uses mock data internally if service unavailable)
+        // TODO: Add speedtest-tracker URL to config file
+        var baseUrl = "http://localhost:8080";
+        return new SpeedtestClient(_httpClient, baseUrl);
     }
 }
