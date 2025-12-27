@@ -5,6 +5,7 @@ using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Health;
 using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.ServiceDiscovery;
 
 namespace HomeLab.Cli;
 
@@ -28,6 +29,10 @@ public static class Program
         services.AddSingleton<IHomelabConfigService, HomelabConfigService>();
         services.AddSingleton<HttpClient>();
         services.AddSingleton<IServiceClientFactory, ServiceClientFactory>();
+
+        // Phase 5 - Day 2: Service discovery and health checks
+        services.AddSingleton<IServiceDiscoveryService, ServiceDiscoveryService>();
+        services.AddSingleton<IServiceHealthCheckService, ServiceHealthCheckService>();
 
         // Create registrar to connect Spectre with DI
         var registrar = new TypeRegistrar(services);
