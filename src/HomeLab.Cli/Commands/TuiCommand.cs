@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Health;
+using HomeLab.Cli.Services.Abstractions;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -14,6 +15,7 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
 {
     private readonly IDockerService _dockerService;
     private readonly IServiceHealthCheckService _healthCheckService;
+    private readonly IServiceClientFactory _clientFactory;
     private bool _shouldExit = false;
 
     public class Settings : CommandSettings
@@ -24,10 +26,14 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
         public int RefreshInterval { get; set; } = 2;
     }
 
-    public TuiCommand(IDockerService dockerService, IServiceHealthCheckService healthCheckService)
+    public TuiCommand(
+        IDockerService dockerService,
+        IServiceHealthCheckService healthCheckService,
+        IServiceClientFactory clientFactory)
     {
         _dockerService = dockerService;
         _healthCheckService = healthCheckService;
+        _clientFactory = clientFactory;
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -141,15 +147,29 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
             .BorderColor(Color.Cyan)
             .Padding(1, 0);
 
+        // Uptime monitoring panel
+        var uptimeInfo = await GetUptimeInfo();
+        var uptimePanel = new Panel(uptimeInfo)
+            .Header("[green]⏱️ Uptime[/]")
+            .BorderColor(Color.Green)
+            .Padding(1, 0);
+
+        // Speedtest panel
+        var speedInfo = await GetSpeedtestInfo();
+        var speedPanel = new Panel(speedInfo)
+            .Header("[cyan]🚀 Speed[/]")
+            .BorderColor(Color.Cyan1)
+            .Padding(1, 0);
+
         // Footer
         var footer = new Panel(
             Align.Center(
-                new Markup("[dim]Shortcuts: [yellow]Ctrl+C[/] Exit | [yellow]↑↓[/] Scroll (future)[/]"),
+                new Markup("[dim]Shortcuts: [yellow]Ctrl+C[/] Exit | Live updates every {settings.RefreshInterval}s[/]"),
                 VerticalAlignment.Middle))
             .BorderColor(Color.Grey)
             .Padding(0, 0);
 
-        // Assemble layout
+        // Assemble layout with new panels
         var layout = new Layout("Root")
             .SplitRows(
                 new Layout("Header").Size(3).Update(header),
@@ -158,7 +178,11 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
                         new Layout("Services").Update(serviceTable),
                         new Layout("Stats").Size(5).Update(statsPanel)
                     ),
-                    new Layout("Right").Size(40).Update(systemPanel)
+                    new Layout("Right").Size(45).SplitRows(
+                        new Layout("System").Update(systemPanel),
+                        new Layout("Uptime").Size(8).Update(uptimePanel),
+                        new Layout("Speed").Size(7).Update(speedPanel)
+                    )
                 ),
                 new Layout("Footer").Size(3).Update(footer)
             );
@@ -208,5 +232,72 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
             len = len / 1024;
         }
         return $"{len:0.##} {sizes[order]}";
+    }
+
+    private async Task<Markup> GetUptimeInfo()
+    {
+        try
+        {
+            var client = _clientFactory.CreateUptimeKumaClient();
+            var monitors = await client.GetMonitorsAsync();
+
+            if (monitors.Count == 0)
+            {
+                return new Markup("[dim]No monitors configured[/]");
+            }
+
+            // Show top 3 monitors
+            var info = new List<string>();
+            foreach (var monitor in monitors.Take(3))
+            {
+                var statusIcon = monitor.Status == Services.UptimeKuma.MonitorStatus.Up ? "🟢" : "🔴";
+                var color = monitor.Status == Services.UptimeKuma.MonitorStatus.Up ? "green" : "red";
+                var uptimeColor = monitor.UptimePercentage >= 99 ? "green" :
+                                 monitor.UptimePercentage >= 95 ? "yellow" : "red";
+
+                info.Add($"{statusIcon} [{color}]{monitor.Name}[/]");
+                info.Add($"  [{uptimeColor}]{monitor.UptimePercentage:F2}%[/] uptime");
+            }
+
+            if (monitors.Count > 3)
+            {
+                info.Add($"[dim]... and {monitors.Count - 3} more[/]");
+            }
+
+            return new Markup(string.Join("\n", info));
+        }
+        catch
+        {
+            return new Markup("[dim]Uptime data unavailable[/]");
+        }
+    }
+
+    private async Task<Markup> GetSpeedtestInfo()
+    {
+        try
+        {
+            var client = _clientFactory.CreateSpeedtestClient();
+            var stats = await client.GetStatsAsync(7); // 7-day stats
+
+            var downloadColor = stats.AvgDownload >= 400 ? "green" :
+                               stats.AvgDownload >= 200 ? "yellow" : "red";
+            var uploadColor = stats.AvgUpload >= 40 ? "green" :
+                             stats.AvgUpload >= 20 ? "yellow" : "red";
+
+            var info = new List<string>
+            {
+                $"[{downloadColor}]↓ {stats.AvgDownload:F1} Mbps[/] download",
+                $"[{uploadColor}]↑ {stats.AvgUpload:F1} Mbps[/] upload",
+                $"[cyan]⚡ {stats.AvgPing:F0} ms[/] ping",
+                "",
+                $"[dim]{stats.TotalTests} tests (7d)[/]"
+            };
+
+            return new Markup(string.Join("\n", info));
+        }
+        catch
+        {
+            return new Markup("[dim]Speed data unavailable[/]");
+        }
     }
 }
