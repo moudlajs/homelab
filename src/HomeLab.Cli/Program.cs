@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 using HomeLab.Cli.Commands;
+using HomeLab.Cli.Commands.Vpn;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Health;
@@ -62,6 +63,18 @@ public static class Program
 
             config.AddCommand<CleanupCommand>("cleanup")
                 .WithDescription("Clean up unused Docker resources");
+
+            // Phase 5 - Day 3: VPN Management
+            config.AddBranch("vpn", vpn =>
+            {
+                vpn.SetDescription("Manage VPN peers and configuration");
+                vpn.AddCommand<VpnStatusCommand>("status")
+                    .WithDescription("Display VPN peer status");
+                vpn.AddCommand<VpnAddPeerCommand>("add-peer")
+                    .WithDescription("Add a new VPN peer");
+                vpn.AddCommand<VpnRemovePeerCommand>("remove-peer")
+                    .WithDescription("Remove a VPN peer");
+            });
         });
 
         return app.Run(args);
