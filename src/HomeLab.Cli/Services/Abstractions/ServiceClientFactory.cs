@@ -1,5 +1,8 @@
+using HomeLab.Cli.Services.AdGuard;
 using HomeLab.Cli.Services.Configuration;
+using HomeLab.Cli.Services.Grafana;
 using HomeLab.Cli.Services.Mocks;
+using HomeLab.Cli.Services.Prometheus;
 using HomeLab.Cli.Services.WireGuard;
 
 namespace HomeLab.Cli.Services.Abstractions;
@@ -26,8 +29,7 @@ public class ServiceClientFactory : IServiceClientFactory
             return new MockAdGuardClient();
         }
 
-        // TODO: Create real AdGuardClient in Day 4
-        throw new NotImplementedException("Real AdGuardClient not yet implemented. Set development.use_mock_services = true in config.");
+        return new AdGuardClient(_configService, _httpClient);
     }
 
     public IWireGuardClient CreateWireGuardClient()
@@ -48,8 +50,7 @@ public class ServiceClientFactory : IServiceClientFactory
             return new MockPrometheusClient();
         }
 
-        // TODO: Create real PrometheusClient in Day 4
-        throw new NotImplementedException("Real PrometheusClient not yet implemented. Set development.use_mock_services = true in config.");
+        return new PrometheusClient(_configService, _httpClient);
     }
 
     public IGrafanaClient CreateGrafanaClient()
@@ -59,7 +60,6 @@ public class ServiceClientFactory : IServiceClientFactory
             return new MockGrafanaClient();
         }
 
-        // TODO: Create real GrafanaClient in Day 4
-        throw new NotImplementedException("Real GrafanaClient not yet implemented. Set development.use_mock_services = true in config.");
+        return new GrafanaClient(_configService, _httpClient);
     }
 }
