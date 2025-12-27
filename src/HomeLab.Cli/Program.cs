@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 using HomeLab.Cli.Commands;
 using HomeLab.Cli.Services.Docker;
+using HomeLab.Cli.Services.Configuration;
 
 namespace HomeLab.Cli;
 
@@ -16,6 +17,7 @@ public static class Program
         // Setup dependency injection container
         var services = new ServiceCollection();
         services.AddSingleton<IDockerService, DockerService>();
+        services.AddSingleton<IConfigService, ConfigService>();
 
         // Create registrar to connect Spectre with DI
         var registrar = new TypeRegistrar(services);
@@ -33,6 +35,9 @@ public static class Program
 
             config.AddCommand<ServiceCommand>("service")
                 .WithDescription("Manage service lifecycle (start, stop, restart)");
+
+            config.AddCommand<ConfigCommand>("config")
+                .WithDescription("Manage configuration (view, edit, backup, restore)");
         });
 
         return app.Run(args);
