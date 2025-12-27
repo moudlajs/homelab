@@ -3,6 +3,7 @@ using Spectre.Console.Cli;
 using HomeLab.Cli.Commands;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Configuration;
+using HomeLab.Cli.Services.Health;
 
 namespace HomeLab.Cli;
 
@@ -18,6 +19,7 @@ public static class Program
         var services = new ServiceCollection();
         services.AddSingleton<IDockerService, DockerService>();
         services.AddSingleton<IConfigService, ConfigService>();
+        services.AddSingleton<IHealthCheckService, HealthCheckService>();
 
         // Create registrar to connect Spectre with DI
         var registrar = new TypeRegistrar(services);
@@ -38,6 +40,15 @@ public static class Program
 
             config.AddCommand<ConfigCommand>("config")
                 .WithDescription("Manage configuration (view, edit, backup, restore)");
+
+            config.AddCommand<LogsCommand>("logs")
+                .WithDescription("View container logs");
+
+            config.AddCommand<UpdateCommand>("update")
+                .WithDescription("Update container images");
+
+            config.AddCommand<CleanupCommand>("cleanup")
+                .WithDescription("Clean up unused Docker resources");
         });
 
         return app.Run(args);
