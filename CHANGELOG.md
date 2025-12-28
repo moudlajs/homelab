@@ -5,6 +5,244 @@ All notable changes to the HomeLab CLI project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2025-12-28
+
+### Fixed
+
+#### Self-Update Bug Fixes
+- **DI Resolution Error** - Fixed "Could not resolve type 'SelfUpdateCommand'" error caused by YAML property name mismatch during config loading
+- **Config File Loading** - Updated config service to check `~/.config/homelab/homelab-cli.yaml` first (standard user config location), falling back to repo config for development
+- **YAML Property Naming** - Corrected `GitHub` → `Github` in `HomelabConfig` to match YamlDotNet's `UnderscoredNamingConvention`
+
+### Changed
+- Config path resolution now prioritizes user config directory (`~/.config/homelab/`)
+- TypeRegistrar code style improvements (expression-bodied → block-bodied members)
+
+---
+
+## [1.6.0] - 2025-12-28
+
+### Added - Phase 10: Self-Update Command
+
+#### Self-Update Functionality ✨
+- **Version Command**: `homelab version` - Display version information (product, version, runtime, platform)
+- **Self-Update Command**: `homelab self-update` - Update to latest release from GitHub
+  - `--check` - Check for updates without installing
+  - `--version <VERSION>` - Install specific version (e.g., v1.6.0 or 1.6.0)
+  - `--force` - Skip confirmation prompt
+- **GitHub API Integration**:
+  - GitHubReleaseService for fetching releases
+  - Semantic version comparison (1.6.0 > 1.5.0)
+  - Binary download from release assets
+  - Automatic self-installation (requires sudo)
+  - GitHub token authentication for private repos
+
+#### Phase 9a Complete
+- **Uptime Remove Command**: `homelab uptime rm <id>` - Remove monitors from Uptime Kuma
+
+### Changed
+- **Breaking**: `homelab update` renamed to `homelab image-update` (for Docker images)
+  - Old: `homelab update nginx`
+  - New: `homelab image-update nginx`
+
+### Technical Improvements
+- New service: `IGitHubReleaseService` and `GitHubReleaseService`
+- New commands: `VersionCommand` and `SelfUpdateCommand`
+- Version information added to project file (1.6.0)
+- Cross-platform binary support (macOS ARM64)
+
+---
+
+## [1.5.0] - 2025-12-28
+
+### Added - Phase 8: Home Assistant Smart Home Integration
+
+#### Home Assistant CLI Control
+Complete integration with Home Assistant for smart home device management:
+
+- **Status Command**: `homelab ha status` (aliases: `st`, `ls`)
+  - Display all entities grouped by domain (lights, switches, sensors, climate, etc.)
+  - Color-coded state indicators
+  - Entity attributes display
+  - Friendly name and ID mapping
+
+- **Control Command**: `homelab ha control <action> <entity>`
+  - Actions: `on`, `off`, `toggle`
+  - Supports all controllable domains (light, switch, climate, etc.)
+  - Immediate state updates with confirmation
+
+- **Get Command**: `homelab ha get <entity>`
+  - Get detailed entity information with all attributes
+  - State history and last updated timestamp
+  - Device-specific attributes (brightness, temperature, etc.)
+
+- **List Command**: `homelab ha list <domain>`
+  - List all entities by domain (light, switch, sensor, binary_sensor, climate, etc.)
+  - Domain filtering
+  - Count summaries
+
+#### Full Export Support
+All HA commands support multiple output formats:
+- `--output table` (default) - Beautiful terminal tables
+- `--output json` - JSON format for automation
+- `--output csv` - CSV for spreadsheets
+- `--output yaml` - YAML for configuration
+- `--export <file>` - Save to file
+
+#### REST API Integration
+- **HomeAssistantClient** - REST API integration with bearer token authentication
+- **Configuration** via `homelab-cli.yaml`:
+  ```yaml
+  services:
+    homeassistant:
+      url: http://localhost:8123
+      token: your-long-lived-access-token
+      enabled: true
+  ```
+- Automatic mock data fallback for testing
+- Ready for Mac Mini deployment
+
+#### Mock Data for Testing
+Includes 7 mock entities for testing without HA installed:
+- 2 lights (living room, bedroom)
+- 1 switch (christmas lights)
+- 2 sensors (temperature, humidity)
+- 1 binary sensor (front door)
+- 1 climate (thermostat)
+
+---
+
+## [1.4.0] - 2025-12-27
+
+### Added - Phase 7: Quick Actions & Universal Export Support
+
+#### Quick Actions (Ultra-Fast Commands)
+No confirmation prompts - perfect for daily operations:
+- **Quick Restart**: `homelab qr <service>` (alias for `quick-restart`)
+  - Instant restart without confirmation
+  - Shows restart status
+
+- **Quick Update**: `homelab qu <service>` (alias for `quick-update`)
+  - Pull latest image and restart
+  - No prompts, just does it
+
+- **Quick Backup**: `homelab qb <service>` (alias for `quick-backup`)
+  - Backup container configs instantly
+  - Timestamped backups
+
+- **Quick Fix**: `homelab qf <service>` (alias for `quick-fix`)
+  - Stop, clear cache, restart
+  - Troubleshooting in one command
+
+#### Universal Export Support
+All commands now support `--output` and `--export` flags:
+- **VPN**: `homelab vpn status --output json --export peers.json`
+- **DNS**: `homelab dns stats --export stats.csv`
+- **Monitor**: `homelab monitor alerts --output yaml`
+- **Uptime**: `homelab uptime status --export monitors.json`
+- **Speedtest**: `homelab speedtest stats --output csv`
+
+Supported formats:
+- `table` - Terminal table (default)
+- `json` - JSON format
+- `csv` - CSV spreadsheet
+- `yaml` - YAML format
+
+#### Enhanced TUI Dashboard
+- Added Uptime Kuma monitoring panel with service health
+- Added Speedtest Tracker speed panel with latest results
+- Real-time service health visualization
+- System info with Docker stats (containers, images, memory)
+- Auto-refresh with configurable interval
+
+### Technical Improvements
+- Extended export functionality across all service commands
+- Standardized output formatting infrastructure
+- Enhanced BaseExportCommand for reusability
+
+---
+
+## [1.3.0] - 2025-12-27
+
+### Added - Phase 6: Monitoring & Observability
+
+#### Export Commands for All Services
+Export any command output in multiple formats for automation and analysis:
+
+**Formats:**
+- **JSON** - For automation, scripts, and APIs
+- **CSV** - For spreadsheets and data analysis
+- **YAML** - For configuration files
+- **Table** - Human-readable (default)
+
+**Usage:**
+```bash
+# Export to stdout
+homelab status --output json
+homelab status --output csv
+homelab status --output yaml
+
+# Export to file
+homelab status --output json --export status.json
+homelab status --output csv --export services.csv
+```
+
+**Use Cases:**
+- Pipe to jq for filtering: `homelab status -o json | jq '.[] | select(.IsHealthy == false)'`
+- Import to Excel/Google Sheets
+- Send to monitoring systems
+- Automate with scripts
+
+#### Uptime Kuma Integration
+Track service uptime and monitor availability:
+
+**Commands:**
+- `homelab uptime status` (aliases: `st`, `ls`) - Show all monitored services
+- `homelab uptime alerts` (alias: `al`) - Show recent incidents
+- `homelab uptime add <name> <url>` - Add new monitor
+
+**Features:**
+- Real-time uptime percentage (99.98%, 100%, etc.)
+- Visual status indicators (🟢 Up, 🔴 Down)
+- Average response time tracking
+- Incident history with duration
+- Summary statistics (up/down counts, avg uptime)
+
+#### Speedtest Tracker Integration
+Monitor internet connection speed over time:
+
+**Commands:**
+- `homelab speedtest run` - Run a new speed test
+- `homelab speedtest stats` (alias: `st`) - View statistics and history
+
+**Features:**
+- Download/upload speed tracking (Mbps)
+- Ping latency monitoring
+- 30-day statistics (average, min, max)
+- Historical trends with visual bar charts
+- Color-coded speed indicators
+- Server and ISP information
+
+### Technical Improvements
+
+#### New Services
+- **OutputFormatter** (`IOutputFormatter`) - Multi-format export (JSON/CSV/YAML)
+- **UptimeKumaClient** - Uptime Kuma API integration
+- **SpeedtestClient** - Speedtest Tracker API integration
+
+#### New Infrastructure
+- **BaseExportCommand** - Reusable export functionality for commands
+- Extended **ServiceClientFactory** with Uptime Kuma and Speedtest clients
+- **CsvHelper 33.1.0** - Professional CSV export
+
+#### Testing Support
+- Mock data support for offline testing
+- Health check integration
+- Error handling with helpful messages
+- Graceful degradation when services unavailable
+
+---
+
 ## [1.2.0] - 2025-12-27
 
 ### Added - Quality of Life Improvements
@@ -64,6 +302,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `docs/TESTING_REPORT.md` - Initial test results
   - `docs/FINAL_SUMMARY.md` - Complete feature summary
   - `docker-compose.yml` - Local testing setup
+
+---
 
 ## [1.1.0] - 2025-12-27
 
@@ -200,7 +440,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.0] - 2024-XX-XX
+## [1.0.0] - 2025-12-27
 
 ### Initial Release - Phase 1-4
 
@@ -236,5 +476,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.6.1]: https://github.com/moudlajs/homelab/compare/v1.6.0...v1.6.1
+[1.6.0]: https://github.com/moudlajs/homelab/compare/v1.5.0...v1.6.0
+[1.5.0]: https://github.com/moudlajs/homelab/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/moudlajs/homelab/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/moudlajs/homelab/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/moudlajs/homelab/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/moudlajs/homelab/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/moudlajs/homelab/releases/tag/v1.0.0

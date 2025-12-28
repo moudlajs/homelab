@@ -59,7 +59,9 @@ data/
 *.bak
 *.swp
 *~
-gg.md
+
+# Temporary files (phase notes, work-in-progress docs)
+.temp/
 
 # Application specific
 config/homelab-cli.yaml
