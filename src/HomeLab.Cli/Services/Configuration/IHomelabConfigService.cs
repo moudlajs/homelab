@@ -35,6 +35,11 @@ public interface IHomelabConfigService
     /// Gets Home Assistant configuration (URL defaults to http://localhost:8123).
     /// </summary>
     ServiceConfig GetHomeAssistantConfig();
+
+    /// <summary>
+    /// Gets GitHub personal access token for self-update (required for private repos).
+    /// </summary>
+    string? GetGitHubToken();
 }
 
 /// <summary>
@@ -45,6 +50,7 @@ public class HomelabConfig
     public DevelopmentConfig Development { get; set; } = new();
     public Dictionary<string, ServiceConfig> Services { get; set; } = new();
     public RemoteConfig Remote { get; set; } = new();
+    public GitHubConfig? GitHub { get; set; }
 }
 
 /// <summary>
@@ -87,4 +93,12 @@ public class RemoteHostConfig
     public string User { get; set; } = string.Empty;
     public string DockerHost { get; set; } = "unix:///var/run/docker.sock";
     public string ComposeFile { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// GitHub configuration for self-update.
+/// </summary>
+public class GitHubConfig
+{
+    public string? Token { get; set; }
 }

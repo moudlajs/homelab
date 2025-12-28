@@ -30,3 +30,10 @@ remote:
     user: "your-username"   # Update with your username
     docker_host: "unix:///var/run/docker.sock"
     compose_file: "/path/to/mac-mini/docker-compose.yml"
+
+# GitHub configuration for self-update (required for private repos)
+github:
+  # Personal access token with 'repo' scope
+  # Generate at: https://github.com/settings/tokens/new
+  # Required scopes: repo (for private repos) or public_repo (for public repos)
+  token: ""  # Add your token here

@@ -110,4 +110,10 @@ public class HomelabConfigService : IHomelabConfigService
 
         return config;
     }
+
+    public string? GetGitHubToken()
+    {
+        _config ??= LoadConfigAsync().GetAwaiter().GetResult();
+        return _config.GitHub?.Token;
+    }
 }
