@@ -6,6 +6,7 @@ using HomeLab.Cli.Services.Prometheus;
 using HomeLab.Cli.Services.WireGuard;
 using HomeLab.Cli.Services.UptimeKuma;
 using HomeLab.Cli.Services.Speedtest;
+using HomeLab.Cli.Services.HomeAssistant;
 
 namespace HomeLab.Cli.Services.Abstractions;
 
@@ -79,5 +80,11 @@ public class ServiceClientFactory : IServiceClientFactory
         // TODO: Add speedtest-tracker URL to config file
         var baseUrl = "http://localhost:8080";
         return new SpeedtestClient(_httpClient, baseUrl);
+    }
+
+    public IHomeAssistantClient CreateHomeAssistantClient()
+    {
+        // Always return real client (uses mock data internally if service unavailable)
+        return new HomeAssistantClient(_httpClient, _configService);
     }
 }
