@@ -117,9 +117,10 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
         }
 
         // Find the correct binary asset for this platform
-        var binaryName = "HomeLab.Cli"; // The asset name in GitHub releases
+        var platformSuffix = GetPlatformSuffix();
         var asset = release.Assets.FirstOrDefault(a =>
-            a.Name.Equals(binaryName, StringComparison.OrdinalIgnoreCase) ||
+            a.Name.Contains(platformSuffix, StringComparison.OrdinalIgnoreCase) ||
+            a.Name.Equals("HomeLab.Cli", StringComparison.OrdinalIgnoreCase) ||
             a.Name.Equals("homelab", StringComparison.OrdinalIgnoreCase));
 
         if (asset == null)
@@ -248,6 +249,40 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
             .InformationalVersion ?? "Unknown";
 
         return version.TrimStart('v');
+    }
+
+    private string GetPlatformSuffix()
+    {
+        // Determine platform-specific binary suffix
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.Arm64 => "macos-arm64",
+                Architecture.X64 => "macos-x64",
+                _ => "macos-arm64"
+            };
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.Arm64 => "linux-arm64",
+                Architecture.X64 => "linux-x64",
+                _ => "linux-x64"
+            };
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.Arm64 => "win-arm64",
+                Architecture.X64 => "win-x64",
+                _ => "win-x64"
+            };
+        }
+
+        return "macos-arm64"; // Default fallback
     }
 
     private string FormatBytes(long bytes)
