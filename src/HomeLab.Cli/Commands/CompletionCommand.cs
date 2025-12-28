@@ -1,6 +1,6 @@
+using System.ComponentModel;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using System.ComponentModel;
 
 namespace HomeLab.Cli.Commands;
 
