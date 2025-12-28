@@ -5,6 +5,26 @@ All notable changes to the HomeLab CLI project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2025-12-28
+
+### Added - Phase 11: Traefik Integration (Extended)
+
+#### Traefik Backend Services & Middlewares 🔄
+- **Services Command**: `homelab traefik services` - Display all backend services with load balancer configuration
+  - Shows service type, servers, load balancer algorithm, and health status
+  - Full export support (JSON, CSV, YAML)
+- **Middlewares Command**: `homelab traefik middlewares` (alias: `mw`) - List all HTTP middlewares
+  - Displays middleware type, status, and configuration details
+  - Shows auth, compression, headers, redirect configurations
+  - Full export support (JSON, CSV, YAML)
+
+#### Export Functionality
+- Both commands support `--output <format>` (json, csv, yaml)
+- Both commands support `--export <file>` for file output
+- Consistent export pattern across all Traefik commands
+
+---
+
 ## [1.6.1] - 2025-12-28
 
 ### Fixed
