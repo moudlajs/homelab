@@ -8,6 +8,7 @@ using HomeLab.Cli.Commands.Remote;
 using HomeLab.Cli.Commands.Uptime;
 using HomeLab.Cli.Commands.Speedtest;
 using HomeLab.Cli.Commands.Quick;
+using HomeLab.Cli.Commands.HomeAssistant;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Health;
@@ -166,6 +167,22 @@ public static class Program
                 speedtest.AddCommand<SpeedtestStatsCommand>("stats")
                     .WithAlias("st")
                     .WithDescription("Display speed test statistics and history");
+            });
+
+            // Phase 8: Home Assistant Integration
+            config.AddBranch("ha", ha =>
+            {
+                ha.SetDescription("Control Home Assistant smart home devices");
+                ha.AddCommand<HaStatusCommand>("status")
+                    .WithAlias("st")
+                    .WithAlias("ls")
+                    .WithDescription("Display all Home Assistant entities");
+                ha.AddCommand<HaControlCommand>("control")
+                    .WithDescription("Control devices (on, off, toggle)");
+                ha.AddCommand<HaGetCommand>("get")
+                    .WithDescription("Get details of a specific entity");
+                ha.AddCommand<HaListCommand>("list")
+                    .WithDescription("List entities by domain (light, switch, sensor, etc.)");
             });
 
             // Phase 7: Quick Actions - Fast operations for daily use

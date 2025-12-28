@@ -97,4 +97,17 @@ public class HomelabConfigService : IHomelabConfigService
         // Return default config if service not found
         return new ServiceConfig { Enabled = false };
     }
+
+    public ServiceConfig GetHomeAssistantConfig()
+    {
+        var config = GetServiceConfig("homeassistant");
+
+        // Default URL if not configured
+        if (string.IsNullOrEmpty(config.Url))
+        {
+            config.Url = "http://localhost:8123";
+        }
+
+        return config;
+    }
 }

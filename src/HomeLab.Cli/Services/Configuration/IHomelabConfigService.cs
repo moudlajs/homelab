@@ -30,6 +30,11 @@ public interface IHomelabConfigService
     /// Gets service-specific configuration.
     /// </summary>
     ServiceConfig GetServiceConfig(string serviceName);
+
+    /// <summary>
+    /// Gets Home Assistant configuration (URL defaults to http://localhost:8123).
+    /// </summary>
+    ServiceConfig GetHomeAssistantConfig();
 }
 
 /// <summary>
@@ -60,6 +65,7 @@ public class ServiceConfig
     public string? Url { get; set; }
     public string? Username { get; set; }
     public string? Password { get; set; }
+    public string? Token { get; set; }
     public string? ConfigPath { get; set; }
     public bool Enabled { get; set; } = true;
 }
