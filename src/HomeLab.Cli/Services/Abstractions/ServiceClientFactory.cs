@@ -6,6 +6,7 @@ using HomeLab.Cli.Services.Mocks;
 using HomeLab.Cli.Services.Ntopng;
 using HomeLab.Cli.Services.Prometheus;
 using HomeLab.Cli.Services.Speedtest;
+using HomeLab.Cli.Services.Suricata;
 using HomeLab.Cli.Services.Traefik;
 using HomeLab.Cli.Services.UptimeKuma;
 using HomeLab.Cli.Services.WireGuard;
@@ -108,5 +109,15 @@ public class ServiceClientFactory : IServiceClientFactory
         }
 
         return new NtopngClient(_configService, _httpClient);
+    }
+
+    public ISuricataClient CreateSuricataClient()
+    {
+        if (_configService.UseMockServices)
+        {
+            return new MockSuricataClient();
+        }
+
+        return new SuricataClient(_configService);
     }
 }

@@ -73,6 +73,7 @@ public class ServiceConfig
     public string? Password { get; set; }
     public string? Token { get; set; }
     public string? ConfigPath { get; set; }
+    public string? LogPath { get; set; }
     public bool Enabled { get; set; } = true;
 }
 

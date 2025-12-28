@@ -77,7 +77,7 @@ _homelab_completions()
     local traefik_commands=""status st routes services middlewares mw""
 
     # Network subcommands
-    local network_commands=""scan ports devices traffic""
+    local network_commands=""scan ports devices traffic intrusion alerts status st""
 
     # Common flags
     local output_flags=""--output --export""
@@ -261,7 +261,11 @@ _homelab() {
                         ""scan[Discover devices on network]"" \
                         ""ports[Scan ports on devices]"" \
                         ""devices[List tracked network devices (ntopng)]"" \
-                        ""traffic[Display network traffic statistics]""
+                        ""traffic[Display network traffic statistics]"" \
+                        ""intrusion[Display security alerts (Suricata IDS)]"" \
+                        ""alerts[Alias for intrusion]"" \
+                        ""status[Comprehensive network health overview]"" \
+                        ""st[Alias for status]""
                     ;;
                 completion)
                     _values ""shell types"" \
