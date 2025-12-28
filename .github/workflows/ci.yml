@@ -20,24 +20,25 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Restore dependencies
-      run: dotnet restore
-      working-directory: src/HomeLab.Cli
+      run: |
+        dotnet restore src/HomeLab.Cli/HomeLab.Cli.csproj
+        dotnet restore src/HomeLab.Cli.Tests/HomeLab.Cli.Tests.csproj
 
     - name: Check code formatting
       run: dotnet format --verify-no-changes --verbosity diagnostic
       working-directory: src/HomeLab.Cli
 
     - name: Build
-      run: dotnet build --no-restore -c Release
-      working-directory: src/HomeLab.Cli
+      run: |
+        dotnet build src/HomeLab.Cli/HomeLab.Cli.csproj --no-restore -c Release
+        dotnet build src/HomeLab.Cli.Tests/HomeLab.Cli.Tests.csproj --no-restore -c Release
 
     - name: Run tests
-      run: dotnet test --no-build -c Release --verbosity normal --logger "trx;LogFileName=test-results.trx"
-      working-directory: src/HomeLab.Cli
+      run: dotnet test src/HomeLab.Cli.Tests/HomeLab.Cli.Tests.csproj --no-build -c Release --verbosity normal --logger "trx;LogFileName=test-results.trx"
 
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: test-results
-        path: src/HomeLab.Cli/**/test-results.trx
+        path: src/HomeLab.Cli.Tests/**/test-results.trx
