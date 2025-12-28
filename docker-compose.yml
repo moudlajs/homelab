@@ -70,3 +70,14 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+
+  ntopng:
+    image: ntop/ntopng:stable
+    container_name: homelab_ntopng
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./data/ntopng:/var/lib/ntopng
+    command: --community --http-port 3002

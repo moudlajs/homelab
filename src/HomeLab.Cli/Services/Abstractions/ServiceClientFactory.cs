@@ -3,6 +3,7 @@ using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Grafana;
 using HomeLab.Cli.Services.HomeAssistant;
 using HomeLab.Cli.Services.Mocks;
+using HomeLab.Cli.Services.Ntopng;
 using HomeLab.Cli.Services.Prometheus;
 using HomeLab.Cli.Services.Speedtest;
 using HomeLab.Cli.Services.Traefik;
@@ -97,5 +98,15 @@ public class ServiceClientFactory : IServiceClientFactory
         }
 
         return new TraefikClient(_configService, _httpClient);
+    }
+
+    public INtopngClient CreateNtopngClient()
+    {
+        if (_configService.UseMockServices)
+        {
+            return new MockNtopngClient();
+        }
+
+        return new NtopngClient(_configService, _httpClient);
     }
 }

@@ -44,4 +44,9 @@ public interface IServiceClientFactory
     /// Creates a Traefik client (Phase 11).
     /// </summary>
     ITraefikClient CreateTraefikClient();
+
+    /// <summary>
+    /// Creates an ntopng client for network traffic monitoring.
+    /// </summary>
+    INtopngClient CreateNtopngClient();
 }

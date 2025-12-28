@@ -77,7 +77,7 @@ _homelab_completions()
     local traefik_commands=""status st routes services middlewares mw""
 
     # Network subcommands
-    local network_commands=""scan ports""
+    local network_commands=""scan ports devices traffic""
 
     # Common flags
     local output_flags=""--output --export""
@@ -259,7 +259,9 @@ _homelab() {
                 network)
                     _values ""network commands"" \
                         ""scan[Discover devices on network]"" \
-                        ""ports[Scan ports on devices]""
+                        ""ports[Scan ports on devices]"" \
+                        ""devices[List tracked network devices (ntopng)]"" \
+                        ""traffic[Display network traffic statistics]""
                     ;;
                 completion)
                     _values ""shell types"" \
