@@ -9,6 +9,7 @@ using HomeLab.Cli.Commands.Uptime;
 using HomeLab.Cli.Commands.Speedtest;
 using HomeLab.Cli.Commands.Quick;
 using HomeLab.Cli.Commands.HomeAssistant;
+using HomeLab.Cli.Commands.Traefik;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Health;
@@ -197,6 +198,17 @@ public static class Program
                     .WithDescription("Get details of a specific entity");
                 ha.AddCommand<HaListCommand>("list")
                     .WithDescription("List entities by domain (light, switch, sensor, etc.)");
+            });
+
+            // Phase 11: Traefik Reverse Proxy
+            config.AddBranch("traefik", traefik =>
+            {
+                traefik.SetDescription("Manage Traefik reverse proxy");
+                traefik.AddCommand<TraefikStatusCommand>("status")
+                    .WithAlias("st")
+                    .WithDescription("Display Traefik overview and status");
+                traefik.AddCommand<TraefikRoutesCommand>("routes")
+                    .WithDescription("List all HTTP routers");
             });
 
             // Phase 7: Quick Actions - Fast operations for daily use

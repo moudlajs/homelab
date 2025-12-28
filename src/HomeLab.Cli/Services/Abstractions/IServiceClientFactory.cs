@@ -39,4 +39,9 @@ public interface IServiceClientFactory
     /// Creates a Home Assistant client (Phase 8).
     /// </summary>
     HomeAssistant.IHomeAssistantClient CreateHomeAssistantClient();
+
+    /// <summary>
+    /// Creates a Traefik client (Phase 11).
+    /// </summary>
+    ITraefikClient CreateTraefikClient();
 }
