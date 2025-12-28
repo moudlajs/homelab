@@ -221,10 +221,10 @@ public static class Program
                     .WithDescription("List all middlewares");
             });
 
-            // Network Monitoring - Phase 1: Scanning, Phase 2: Traffic Monitoring
+            // Network Monitoring - Phase 1-3: Scanning, Traffic, Intrusion Detection
             config.AddBranch("network", network =>
             {
-                network.SetDescription("Network scanning and monitoring");
+                network.SetDescription("Network scanning, monitoring, and security");
                 network.AddCommand<NetworkScanCommand>("scan")
                     .WithDescription("Discover devices on network");
                 network.AddCommand<NetworkPortsCommand>("ports")
@@ -233,6 +233,12 @@ public static class Program
                     .WithDescription("List tracked network devices (ntopng)");
                 network.AddCommand<NetworkTrafficCommand>("traffic")
                     .WithDescription("Display network traffic statistics");
+                network.AddCommand<NetworkIntrusionCommand>("intrusion")
+                    .WithAlias("alerts")
+                    .WithDescription("Display security alerts (Suricata IDS)");
+                network.AddCommand<NetworkStatusCommand>("status")
+                    .WithAlias("st")
+                    .WithDescription("Comprehensive network health overview");
             });
 
             // Phase 7: Quick Actions - Fast operations for daily use

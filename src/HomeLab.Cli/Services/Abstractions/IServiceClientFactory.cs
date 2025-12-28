@@ -49,4 +49,9 @@ public interface IServiceClientFactory
     /// Creates an ntopng client for network traffic monitoring.
     /// </summary>
     INtopngClient CreateNtopngClient();
+
+    /// <summary>
+    /// Creates a Suricata client for intrusion detection.
+    /// </summary>
+    ISuricataClient CreateSuricataClient();
 }
