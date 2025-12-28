@@ -1,8 +1,8 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
+using System.ComponentModel;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Output;
-using System.ComponentModel;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.HomeAssistant;
 
@@ -51,7 +51,9 @@ public class HaGetCommand : AsyncCommand<HaGetCommand.Settings>
 
         // Try export if requested
         if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, entity))
+        {
             return 0;
+        }
 
         // Display entity details
         var grid = new Grid();

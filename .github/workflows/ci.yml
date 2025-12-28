@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+      working-directory: src/HomeLab.Cli
+
+    - name: Check code formatting
+      run: dotnet format --verify-no-changes --verbosity diagnostic
+      working-directory: src/HomeLab.Cli
+
+    - name: Build
+      run: dotnet build --no-restore -c Release
+      working-directory: src/HomeLab.Cli
+
+    - name: Run tests
+      run: dotnet test --no-build -c Release --verbosity normal --logger "trx;LogFileName=test-results.trx"
+      working-directory: src/HomeLab.Cli
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: src/HomeLab.Cli/**/test-results.trx

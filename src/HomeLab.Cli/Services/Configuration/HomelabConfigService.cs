@@ -28,7 +28,9 @@ public class HomelabConfigService : IHomelabConfigService
     public async Task<HomelabConfig> LoadConfigAsync()
     {
         if (_config != null)
+        {
             return _config;
+        }
 
         if (!File.Exists(_configPath))
         {

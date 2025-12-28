@@ -1,8 +1,8 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
+using System.ComponentModel;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Output;
-using System.ComponentModel;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.HomeAssistant;
 
@@ -45,7 +45,9 @@ public class HaListCommand : AsyncCommand<HaListCommand.Settings>
 
         // Try export if requested
         if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, entities))
+        {
             return 0;
+        }
 
         if (entities.Count == 0)
         {
@@ -98,11 +100,20 @@ public class HaListCommand : AsyncCommand<HaListCommand.Settings>
         var timeAgo = DateTime.UtcNow - dateTime;
 
         if (timeAgo.TotalMinutes < 1)
+        {
             return "Just now";
+        }
+
         if (timeAgo.TotalMinutes < 60)
+        {
             return $"{(int)timeAgo.TotalMinutes}m ago";
+        }
+
         if (timeAgo.TotalHours < 24)
+        {
             return $"{(int)timeAgo.TotalHours}h ago";
+        }
+
         return $"{(int)timeAgo.TotalDays}d ago";
     }
 }

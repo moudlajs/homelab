@@ -1,8 +1,8 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.Configuration;
 
 namespace HomeLab.Cli.Services.HomeAssistant;
 
@@ -117,7 +117,9 @@ public class HomeAssistantClient : IHomeAssistantClient
     {
         var domain = entityId.Split('.').FirstOrDefault();
         if (string.IsNullOrEmpty(domain))
+        {
             return false;
+        }
 
         return await CallServiceAsync(domain, "turn_on", new Dictionary<string, object>
         {
@@ -129,7 +131,9 @@ public class HomeAssistantClient : IHomeAssistantClient
     {
         var domain = entityId.Split('.').FirstOrDefault();
         if (string.IsNullOrEmpty(domain))
+        {
             return false;
+        }
 
         return await CallServiceAsync(domain, "turn_off", new Dictionary<string, object>
         {
@@ -141,7 +145,9 @@ public class HomeAssistantClient : IHomeAssistantClient
     {
         var domain = entityId.Split('.').FirstOrDefault();
         if (string.IsNullOrEmpty(domain))
+        {
             return false;
+        }
 
         return await CallServiceAsync(domain, "toggle", new Dictionary<string, object>
         {

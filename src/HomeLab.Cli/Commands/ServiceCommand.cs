@@ -1,7 +1,7 @@
+using System.ComponentModel;
+using HomeLab.Cli.Services.Docker;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using HomeLab.Cli.Services.Docker;
-using System.ComponentModel;
 
 namespace HomeLab.Cli.Commands;
 

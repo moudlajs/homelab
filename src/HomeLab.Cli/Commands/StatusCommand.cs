@@ -1,10 +1,10 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
 using System.ComponentModel;
+using HomeLab.Cli.Services.Dependencies;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Health;
-using HomeLab.Cli.Services.Dependencies;
 using HomeLab.Cli.Services.Output;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands;
 

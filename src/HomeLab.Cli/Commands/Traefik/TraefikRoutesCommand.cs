@@ -1,6 +1,6 @@
+using HomeLab.Cli.Services.Abstractions;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using HomeLab.Cli.Services.Abstractions;
 
 namespace HomeLab.Cli.Commands.Traefik;
 

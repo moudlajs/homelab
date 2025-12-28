@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using HomeLab.Cli.Services.Update;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using HomeLab.Cli.Services.Update;
 
 namespace HomeLab.Cli.Commands;
 

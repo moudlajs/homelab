@@ -1,7 +1,7 @@
+using System.ComponentModel;
+using HomeLab.Cli.Services.Output;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using HomeLab.Cli.Services.Output;
-using System.ComponentModel;
 
 namespace HomeLab.Cli.Commands;
 
@@ -36,7 +36,9 @@ public abstract class BaseExportCommand<TSettings> : AsyncCommand<TSettings>
     protected async Task<bool> TryExportAsync<T>(TSettings settings, T data, string? errorMessage = null)
     {
         if (string.IsNullOrEmpty(settings.Output))
+        {
             return false;
+        }
 
         // Parse output format
         if (!Enum.TryParse<OutputFormat>(settings.Output, true, out var format))

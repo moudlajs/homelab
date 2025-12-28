@@ -1,8 +1,8 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
-using HomeLab.Cli.Services.Configuration;
 using System.ComponentModel;
 using System.Diagnostics;
+using HomeLab.Cli.Services.Configuration;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands;
 

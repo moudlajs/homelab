@@ -18,7 +18,9 @@ public static class OutputHelper
         T data)
     {
         if (string.IsNullOrEmpty(outputFormat))
+        {
             return false;
+        }
 
         // Parse format
         if (!Enum.TryParse<OutputFormat>(outputFormat, true, out var format))

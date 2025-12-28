@@ -1,8 +1,8 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
+using System.ComponentModel;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Output;
-using System.ComponentModel;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.Monitor;
 
@@ -65,7 +65,9 @@ public class MonitorAlertsCommand : AsyncCommand<MonitorAlertsCommand.Settings>
 
         // Try export if requested
         if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, alerts))
+        {
             return 0;
+        }
 
         if (alerts.Count == 0)
         {
@@ -113,9 +115,14 @@ public class MonitorAlertsCommand : AsyncCommand<MonitorAlertsCommand.Settings>
         grid.AddColumn();
 
         if (criticalCount > 0)
+        {
             grid.AddRow($"[red]Critical Alerts:[/]", $"[red]{criticalCount}[/]");
+        }
+
         if (warningCount > 0)
+        {
             grid.AddRow($"[yellow]Warning Alerts:[/]", $"[yellow]{warningCount}[/]");
+        }
 
         grid.AddRow($"[blue]Total Active:[/]", $"[blue]{alerts.Count}[/]");
 
@@ -132,11 +139,20 @@ public class MonitorAlertsCommand : AsyncCommand<MonitorAlertsCommand.Settings>
     private string FormatDuration(TimeSpan duration)
     {
         if (duration.TotalMinutes < 1)
+        {
             return $"{(int)duration.TotalSeconds}s";
+        }
+
         if (duration.TotalHours < 1)
+        {
             return $"{(int)duration.TotalMinutes}m";
+        }
+
         if (duration.TotalDays < 1)
+        {
             return $"{(int)duration.TotalHours}h";
+        }
+
         return $"{(int)duration.TotalDays}d {duration.Hours}h";
     }
 }

@@ -21,7 +21,9 @@ public class ServiceDiscoveryService : IServiceDiscoveryService
     public async Task<List<ServiceDefinition>> DiscoverServicesAsync()
     {
         if (_cachedServices != null)
+        {
             return _cachedServices;
+        }
 
         var composeFilePath = _configService.ComposeFilePath;
 

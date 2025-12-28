@@ -1,7 +1,7 @@
 using System.ComponentModel;
+using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Health;
-using HomeLab.Cli.Services.Abstractions;
 using Spectre.Console;
 using Spectre.Console.Cli;
 

@@ -1,8 +1,8 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
+using System.ComponentModel;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Output;
-using System.ComponentModel;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.Monitor;
 
@@ -42,7 +42,9 @@ public class MonitorTargetsCommand : AsyncCommand<MonitorTargetsCommand.Settings
 
         // Try export if requested
         if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, targets))
+        {
             return 0;
+        }
 
         if (targets.Count == 0)
         {
@@ -112,11 +114,20 @@ public class MonitorTargetsCommand : AsyncCommand<MonitorTargetsCommand.Settings
         var timeAgo = DateTime.UtcNow - dateTime;
 
         if (timeAgo.TotalSeconds < 60)
+        {
             return $"{(int)timeAgo.TotalSeconds}s ago";
+        }
+
         if (timeAgo.TotalMinutes < 60)
+        {
             return $"{(int)timeAgo.TotalMinutes}m ago";
+        }
+
         if (timeAgo.TotalHours < 24)
+        {
             return $"{(int)timeAgo.TotalHours}h ago";
+        }
+
         return $"{(int)timeAgo.TotalDays}d ago";
     }
 }

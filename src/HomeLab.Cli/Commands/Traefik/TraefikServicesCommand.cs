@@ -1,8 +1,8 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
+using System.ComponentModel;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Output;
-using System.ComponentModel;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.Traefik;
 
@@ -45,7 +45,9 @@ public class TraefikServicesCommand : AsyncCommand<TraefikServicesCommand.Settin
 
         // Try export if requested
         if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, services))
+        {
             return 0;
+        }
 
         // Display as table (default)
         var table = new Table()

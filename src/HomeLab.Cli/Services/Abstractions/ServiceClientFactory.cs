@@ -1,13 +1,13 @@
 using HomeLab.Cli.Services.AdGuard;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Grafana;
+using HomeLab.Cli.Services.HomeAssistant;
 using HomeLab.Cli.Services.Mocks;
 using HomeLab.Cli.Services.Prometheus;
-using HomeLab.Cli.Services.WireGuard;
-using HomeLab.Cli.Services.UptimeKuma;
 using HomeLab.Cli.Services.Speedtest;
-using HomeLab.Cli.Services.HomeAssistant;
 using HomeLab.Cli.Services.Traefik;
+using HomeLab.Cli.Services.UptimeKuma;
+using HomeLab.Cli.Services.WireGuard;
 
 namespace HomeLab.Cli.Services.Abstractions;
 

@@ -1,7 +1,7 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
 using System.ComponentModel;
 using HomeLab.Cli.Services.Remote;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.Remote;
 
