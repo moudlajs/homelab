@@ -209,6 +209,11 @@ public static class Program
                     .WithDescription("Display Traefik overview and status");
                 traefik.AddCommand<TraefikRoutesCommand>("routes")
                     .WithDescription("List all HTTP routers");
+                traefik.AddCommand<TraefikServicesCommand>("services")
+                    .WithDescription("List all backend services");
+                traefik.AddCommand<TraefikMiddlewaresCommand>("middlewares")
+                    .WithAlias("mw")
+                    .WithDescription("List all middlewares");
             });
 
             // Phase 7: Quick Actions - Fast operations for daily use
