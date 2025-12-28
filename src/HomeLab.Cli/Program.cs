@@ -2,6 +2,7 @@ using HomeLab.Cli.Commands;
 using HomeLab.Cli.Commands.Dns;
 using HomeLab.Cli.Commands.HomeAssistant;
 using HomeLab.Cli.Commands.Monitor;
+using HomeLab.Cli.Commands.Network;
 using HomeLab.Cli.Commands.Quick;
 using HomeLab.Cli.Commands.Remote;
 using HomeLab.Cli.Commands.Speedtest;
@@ -12,6 +13,7 @@ using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Health;
+using HomeLab.Cli.Services.Network;
 using HomeLab.Cli.Services.Output;
 using HomeLab.Cli.Services.ServiceDiscovery;
 using HomeLab.Cli.Services.Update;
@@ -50,6 +52,9 @@ public static class Program
 
         // Phase 10: Self-update service
         services.AddSingleton<IGitHubReleaseService, GitHubReleaseService>();
+
+        // Network monitoring services
+        services.AddSingleton<INmapService, NmapService>();
 
         // Create registrar to connect Spectre with DI
         var registrar = new TypeRegistrar(services);
@@ -214,6 +219,16 @@ public static class Program
                 traefik.AddCommand<TraefikMiddlewaresCommand>("middlewares")
                     .WithAlias("mw")
                     .WithDescription("List all middlewares");
+            });
+
+            // Network Monitoring - Phase 1: Scanning
+            config.AddBranch("network", network =>
+            {
+                network.SetDescription("Network scanning and monitoring");
+                network.AddCommand<NetworkScanCommand>("scan")
+                    .WithDescription("Discover devices on network");
+                network.AddCommand<NetworkPortsCommand>("ports")
+                    .WithDescription("Scan ports on devices");
             });
 
             // Phase 7: Quick Actions - Fast operations for daily use

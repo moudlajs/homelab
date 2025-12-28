@@ -50,7 +50,7 @@ _homelab_completions()
     _init_completion || return
 
     # Top-level commands
-    local commands=""status st service svc config logs image-update cleanup version self-update tui ui dashboard vpn dns monitor remote uptime speedtest ha traefik quick-restart qr quick-update qu quick-backup qb quick-fix qf completion""
+    local commands=""status st service svc config logs image-update cleanup version self-update tui ui dashboard vpn dns monitor remote uptime speedtest ha traefik network quick-restart qr quick-update qu quick-backup qb quick-fix qf completion""
 
     # VPN subcommands
     local vpn_commands=""status ls list add-peer add remove-peer rm remove""
@@ -75,6 +75,9 @@ _homelab_completions()
 
     # Traefik subcommands
     local traefik_commands=""status st routes services middlewares mw""
+
+    # Network subcommands
+    local network_commands=""scan ports""
 
     # Common flags
     local output_flags=""--output --export""
@@ -109,6 +112,9 @@ _homelab_completions()
                 ;;
             traefik)
                 COMPREPLY=( $(compgen -W ""$traefik_commands"" -- ""$cur"") )
+                ;;
+            network)
+                COMPREPLY=( $(compgen -W ""$network_commands"" -- ""$cur"") )
                 ;;
             completion)
                 COMPREPLY=( $(compgen -W ""bash zsh"" -- ""$cur"") )
@@ -166,6 +172,7 @@ _homelab() {
                 ""speedtest[Monitor internet connection speed]"" \
                 ""ha[Control Home Assistant smart home devices]"" \
                 ""traefik[Manage Traefik reverse proxy]"" \
+                ""network[Network scanning and monitoring]"" \
                 ""quick-restart[Quick restart a service]"" \
                 ""qr[Alias for quick-restart]"" \
                 ""quick-update[Quick update service]"" \
@@ -248,6 +255,11 @@ _homelab() {
                         ""services[List all backend services]"" \
                         ""middlewares[List all middlewares]"" \
                         ""mw[Alias for middlewares]""
+                    ;;
+                network)
+                    _values ""network commands"" \
+                        ""scan[Discover devices on network]"" \
+                        ""ports[Scan ports on devices]""
                     ;;
                 completion)
                     _values ""shell types"" \
