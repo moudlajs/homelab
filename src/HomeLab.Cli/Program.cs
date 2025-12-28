@@ -233,13 +233,19 @@ public sealed class TypeRegistrar : ITypeRegistrar
         => _services = services;
 
     public void Register(Type service, Type implementation)
-        => _services.AddSingleton(service, implementation);
+    {
+        _services.AddSingleton(service, implementation);
+    }
 
     public void RegisterInstance(Type service, object implementation)
-        => _services.AddSingleton(service, implementation);
+    {
+        _services.AddSingleton(service, implementation);
+    }
 
     public void RegisterLazy(Type service, Func<object> factory)
-        => _services.AddSingleton(service, _ => factory());
+    {
+        _services.AddSingleton(service, _ => factory());
+    }
 
     public ITypeResolver Build()
         => new TypeResolver(_services.BuildServiceProvider());
