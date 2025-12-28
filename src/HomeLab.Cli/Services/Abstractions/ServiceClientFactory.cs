@@ -7,6 +7,7 @@ using HomeLab.Cli.Services.WireGuard;
 using HomeLab.Cli.Services.UptimeKuma;
 using HomeLab.Cli.Services.Speedtest;
 using HomeLab.Cli.Services.HomeAssistant;
+using HomeLab.Cli.Services.Traefik;
 
 namespace HomeLab.Cli.Services.Abstractions;
 
@@ -86,5 +87,15 @@ public class ServiceClientFactory : IServiceClientFactory
     {
         // Always return real client (uses mock data internally if service unavailable)
         return new HomeAssistantClient(_httpClient, _configService);
+    }
+
+    public ITraefikClient CreateTraefikClient()
+    {
+        if (_configService.UseMockServices)
+        {
+            return new MockTraefikClient();
+        }
+
+        return new TraefikClient(_configService, _httpClient);
     }
 }
