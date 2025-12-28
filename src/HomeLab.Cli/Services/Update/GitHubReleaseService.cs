@@ -1,25 +1,36 @@
 using System.Net.Http.Json;
+using HomeLab.Cli.Services.Configuration;
 
 namespace HomeLab.Cli.Services.Update;
 
 /// <summary>
 /// Implementation of GitHub Release service for checking updates.
+/// Supports authentication for private repositories via personal access token.
 /// </summary>
 public class GitHubReleaseService : IGitHubReleaseService
 {
     private readonly HttpClient _httpClient;
+    private readonly IHomelabConfigService _configService;
     private const string GitHubApiBase = "https://api.github.com";
     private const string RepoOwner = "moudlajs";
     private const string RepoName = "homelab";
 
-    public GitHubReleaseService(HttpClient httpClient)
+    public GitHubReleaseService(HttpClient httpClient, IHomelabConfigService configService)
     {
         _httpClient = httpClient;
+        _configService = configService;
 
         // GitHub API requires User-Agent header
         if (!_httpClient.DefaultRequestHeaders.Contains("User-Agent"))
         {
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "HomeLab-CLI");
+        }
+
+        // Add authorization header if token is configured (required for private repos)
+        var token = _configService.GetGitHubToken();
+        if (!string.IsNullOrEmpty(token) && !_httpClient.DefaultRequestHeaders.Contains("Authorization"))
+        {
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"token {token}");
         }
     }
 
