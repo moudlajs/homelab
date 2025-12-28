@@ -157,13 +157,21 @@ public class NetworkDevicesCommand : AsyncCommand<NetworkDevicesCommand.Settings
         var timeSpan = DateTime.Now - dateTime;
 
         if (timeSpan.TotalMinutes < 1)
+        {
             return "Just now";
+        }
         if (timeSpan.TotalMinutes < 60)
+        {
             return $"{(int)timeSpan.TotalMinutes}m ago";
+        }
         if (timeSpan.TotalHours < 24)
+        {
             return $"{(int)timeSpan.TotalHours}h ago";
+        }
         if (timeSpan.TotalDays < 7)
+        {
             return $"{(int)timeSpan.TotalDays}d ago";
+        }
 
         return dateTime.ToString("yyyy-MM-dd");
     }
