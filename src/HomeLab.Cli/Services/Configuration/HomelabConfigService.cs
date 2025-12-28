@@ -13,12 +13,16 @@ public class HomelabConfigService : IHomelabConfigService
 
     public HomelabConfigService()
     {
-        // Config file location: config/homelab-cli.yaml relative to repo root
-        _configPath = Path.Combine(
-            Directory.GetCurrentDirectory(),
-            "config",
-            "homelab-cli.yaml"
-        );
+        // Config file location: Try multiple locations in priority order
+        // 1. ~/.config/homelab/homelab-cli.yaml (standard Linux/Mac location)
+        // 2. ./config/homelab-cli.yaml (repo root, for development)
+
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var userConfigPath = Path.Combine(home, ".config", "homelab", "homelab-cli.yaml");
+        var repoConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "config", "homelab-cli.yaml");
+
+        // Use user config if it exists, otherwise fall back to repo config
+        _configPath = File.Exists(userConfigPath) ? userConfigPath : repoConfigPath;
     }
 
     public async Task<HomelabConfig> LoadConfigAsync()
@@ -114,6 +118,6 @@ public class HomelabConfigService : IHomelabConfigService
     public string? GetGitHubToken()
     {
         _config ??= LoadConfigAsync().GetAwaiter().GetResult();
-        return _config.GitHub?.Token;
+        return _config.Github?.Token;
     }
 }

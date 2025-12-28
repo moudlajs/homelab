@@ -50,7 +50,7 @@ public class HomelabConfig
     public DevelopmentConfig Development { get; set; } = new();
     public Dictionary<string, ServiceConfig> Services { get; set; } = new();
     public RemoteConfig Remote { get; set; } = new();
-    public GitHubConfig? GitHub { get; set; }
+    public GitHubConfig? Github { get; set; }
 }
 
 /// <summary>
