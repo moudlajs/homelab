@@ -221,7 +221,7 @@ public static class Program
                     .WithDescription("List all middlewares");
             });
 
-            // Network Monitoring - Phase 1: Scanning
+            // Network Monitoring - Phase 1: Scanning, Phase 2: Traffic Monitoring
             config.AddBranch("network", network =>
             {
                 network.SetDescription("Network scanning and monitoring");
@@ -229,6 +229,10 @@ public static class Program
                     .WithDescription("Discover devices on network");
                 network.AddCommand<NetworkPortsCommand>("ports")
                     .WithDescription("Scan ports on devices");
+                network.AddCommand<NetworkDevicesCommand>("devices")
+                    .WithDescription("List tracked network devices (ntopng)");
+                network.AddCommand<NetworkTrafficCommand>("traffic")
+                    .WithDescription("Display network traffic statistics");
             });
 
             // Phase 7: Quick Actions - Fast operations for daily use
