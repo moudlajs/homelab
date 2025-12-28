@@ -15,6 +15,7 @@ using HomeLab.Cli.Services.Health;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.ServiceDiscovery;
 using HomeLab.Cli.Services.Output;
+using HomeLab.Cli.Services.Update;
 
 namespace HomeLab.Cli;
 
@@ -46,6 +47,9 @@ public static class Program
         // Phase 6: Output formatting
         services.AddSingleton<IOutputFormatter, OutputFormatter>();
 
+        // Phase 10: Self-update service
+        services.AddSingleton<IGitHubReleaseService, GitHubReleaseService>();
+
         // Create registrar to connect Spectre with DI
         var registrar = new TypeRegistrar(services);
 
@@ -71,11 +75,18 @@ public static class Program
             config.AddCommand<LogsCommand>("logs")
                 .WithDescription("View container logs");
 
-            config.AddCommand<UpdateCommand>("update")
+            config.AddCommand<ImageUpdateCommand>("image-update")
                 .WithDescription("Update container images");
 
             config.AddCommand<CleanupCommand>("cleanup")
                 .WithDescription("Clean up unused Docker resources");
+
+            // Phase 10: Version and self-update commands
+            config.AddCommand<VersionCommand>("version")
+                .WithDescription("Display version information");
+
+            config.AddCommand<SelfUpdateCommand>("self-update")
+                .WithDescription("Update HomeLab CLI to the latest version");
 
             config.AddCommand<TuiCommand>("tui")
                 .WithAlias("ui")
@@ -156,6 +167,9 @@ public static class Program
                     .WithDescription("Show recent uptime alerts and incidents");
                 uptime.AddCommand<UptimeAddCommand>("add")
                     .WithDescription("Add a new service to monitor");
+                uptime.AddCommand<UptimeRemoveCommand>("remove")
+                    .WithAlias("rm")
+                    .WithDescription("Remove a monitor from tracking");
             });
 
             // Phase 6: Internet Speed Testing
