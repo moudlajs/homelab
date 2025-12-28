@@ -7,9 +7,9 @@ namespace HomeLab.Cli.Commands;
 
 /// <summary>
 /// Updates container images.
-/// Usage: homelab update <image>
+/// Usage: homelab image-update <image>
 /// </summary>
-public class UpdateCommand : AsyncCommand<UpdateCommand.Settings>
+public class ImageUpdateCommand : AsyncCommand<ImageUpdateCommand.Settings>
 {
     public class Settings : CommandSettings
     {
@@ -20,7 +20,7 @@ public class UpdateCommand : AsyncCommand<UpdateCommand.Settings>
 
     private readonly IDockerService _dockerService;
 
-    public UpdateCommand(IDockerService dockerService)
+    public ImageUpdateCommand(IDockerService dockerService)
     {
         _dockerService = dockerService;
     }
