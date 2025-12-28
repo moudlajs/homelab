@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v1.8.0
+
+permissions:
+  contents: write  # Need write permission to create releases
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for changelog generation
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Extract version from tag
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Restore dependencies
+      run: dotnet restore src/HomeLab.Cli/HomeLab.Cli.csproj
+
+    - name: Build and publish release binary
+      run: |
+        dotnet publish src/HomeLab.Cli/HomeLab.Cli.csproj \
+          -c Release \
+          -r osx-arm64 \
+          --self-contained \
+          -p:PublishSingleFile=true \
+          -p:PublishTrimmed=false \
+          -p:Version=${{ steps.version.outputs.version }}
+
+    - name: Prepare binary for upload
+      run: |
+        cp src/HomeLab.Cli/bin/Release/net8.0/osx-arm64/publish/HomeLab.Cli ./homelab-${{ steps.version.outputs.version }}-macos-arm64
+        chmod +x ./homelab-${{ steps.version.outputs.version }}-macos-arm64
+        ls -lh ./homelab-${{ steps.version.outputs.version }}-macos-arm64
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: homelab-${{ steps.version.outputs.version }}-macos-arm64
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+        body: |
+          ## 📦 Installation
+
+          **macOS (ARM64) - Mac Mini M4/M3/M2/M1**
+
+          ```bash
+          # Download and install
+          curl -L https://github.com/moudlajs/homelab/releases/download/v${{ steps.version.outputs.version }}/homelab-${{ steps.version.outputs.version }}-macos-arm64 -o homelab
+          chmod +x homelab
+          sudo mv homelab /usr/local/bin/
+
+          # Or update if already installed
+          homelab self-update
+          ```
+
+          ---
+
+          ## 🔄 What's Changed
+
+          <!-- Release notes auto-generated from PRs below -->
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update latest release info
+      run: |
+        echo "✅ Release v${{ steps.version.outputs.version }} created successfully!"
+        echo "📦 Binary: homelab-${{ steps.version.outputs.version }}-macos-arm64"
+        echo "🔗 URL: https://github.com/moudlajs/homelab/releases/tag/v${{ steps.version.outputs.version }}"
