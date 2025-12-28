@@ -5,6 +5,35 @@ All notable changes to the HomeLab CLI project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2025-12-28
+
+### Added - Shell Completion Support
+
+#### Developer Experience Enhancement ⚡
+- **Completion Command**: `homelab completion <shell>` - Generate shell completion scripts
+  - Bash completion: `homelab completion bash`
+  - Zsh completion: `homelab completion zsh`
+  - Tab completion for all 28 commands and 42 subcommands
+  - Completion for command aliases (st, svc, qr, qu, qb, qf, etc.)
+  - Completion for common flags (--output, --export)
+
+#### Installation
+```bash
+# Bash
+homelab completion bash > /usr/local/etc/bash_completion.d/homelab
+
+# Zsh
+homelab completion zsh > ~/.zsh/completions/_homelab
+```
+
+#### Benefits
+- ⚡ Faster command entry with tab completion
+- 🧠 Discover available commands and subcommands
+- 🎯 Reduce typos with auto-completion
+- 📚 Built-in documentation via completion descriptions (zsh)
+
+---
+
 ## [1.7.0] - 2025-12-28
 
 ### Added - Phase 11: Traefik Integration (Extended)
