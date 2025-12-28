@@ -40,6 +40,14 @@ A beautiful, powerful CLI tool for managing your homelab with service-specific i
 - **Grafana Dashboards**: List and open dashboards in browser
 - **Metrics Querying**: Execute PromQL queries
 
+### 🔒 Network Security & Monitoring
+- **Device Discovery**: Scan network for connected devices with nmap
+- **Port Scanning**: Identify open ports and running services
+- **Traffic Analysis**: Monitor bandwidth usage and top talkers (ntopng)
+- **Intrusion Detection**: Real-time security alerts with Suricata IDS
+- **Network Status**: Comprehensive health dashboard
+- **Export Support**: JSON, CSV, YAML formats for all commands
+
 ### 🌍 Remote Management
 - **SSH Integration**: Manage remote homelabs via SSH
 - **Connection Profiles**: Save and manage multiple remote connections
@@ -124,6 +132,15 @@ homelab monitor targets
 
 # Monitoring: Open Grafana dashboard
 homelab monitor dashboard
+
+# Network: Scan for devices
+homelab network scan
+
+# Network: Display security alerts
+homelab network intrusion --severity critical
+
+# Network: Show overall network health
+homelab network status
 
 # Remote: Add a connection
 homelab remote connect mac-mini 192.168.1.100 -u admin -k ~/.ssh/id_rsa
@@ -314,6 +331,183 @@ homelab monitor dashboard prometheus-stats
 - Star indicators for favorites
 - Direct browser integration
 - Dashboard URLs displayed
+
+---
+
+### `homelab network <command>`
+
+Network security monitoring, device discovery, and intrusion detection.
+
+#### `homelab network scan [options]`
+
+Discover devices on your network using nmap.
+
+**Options:**
+- `--range <cidr>` - Network range to scan (default: from config)
+- `--quick` - Quick scan without port detection (faster)
+- `--output <format>` - Output format: table, json, csv, yaml
+- `--export <file>` - Export results to file
+
+```bash
+# Scan default network range
+homelab network scan
+
+# Scan specific range
+homelab network scan --range 192.168.1.0/24
+
+# Quick scan (faster, no ports)
+homelab network scan --quick
+
+# Export to JSON
+homelab network scan --output json --export devices.json
+```
+
+**Shows:**
+- IP address, MAC address, hostname
+- Vendor identification
+- Device status (up/down)
+- Open ports (unless --quick)
+
+#### `homelab network ports --device <ip> [options]`
+
+Scan open ports on a specific device.
+
+**Options:**
+- `--device <ip>` - Target device IP (required)
+- `--common` - Only scan common ports (default: true)
+- `--output <format>` - Output format: table, json, csv, yaml
+- `--export <file>` - Export results to file
+
+```bash
+# Scan common ports
+homelab network ports --device 192.168.1.10
+
+# Scan all ports (slower)
+homelab network ports --device 192.168.1.10 --all
+
+# Export results
+homelab network ports --device 192.168.1.10 --output csv --export ports.csv
+```
+
+**Shows:**
+- Port number and protocol
+- Service name and version
+- Port state (open/closed/filtered)
+
+#### `homelab network devices [options]`
+
+List all network devices tracked by ntopng.
+
+**Options:**
+- `--active` - Show only active devices
+- `--output <format>` - Output format: table, json, csv, yaml
+- `--export <file>` - Export results to file
+
+```bash
+# List all tracked devices
+homelab network devices
+
+# Show only active devices
+homelab network devices --active
+
+# Export to YAML
+homelab network devices --output yaml --export devices.yaml
+```
+
+**Shows:**
+- Device name, IP, MAC address
+- First seen / last seen timestamps
+- Bytes sent / received
+- Throughput (if active)
+- Operating system
+
+#### `homelab network traffic [options]`
+
+Display network traffic statistics from ntopng.
+
+**Options:**
+- `--device <ip>` - Filter by specific device
+- `--top <n>` - Number of top talkers (default: 10)
+- `--output <format>` - Output format: table, json, csv, yaml
+- `--export <file>` - Export results to file
+
+```bash
+# Show overall traffic stats
+homelab network traffic
+
+# Filter by device
+homelab network traffic --device 192.168.1.10
+
+# Show top 20 talkers
+homelab network traffic --top 20
+```
+
+**Shows:**
+- Total bytes transferred
+- Active flows count
+- Top talkers with ranking (🥇🥈🥉)
+- Protocol distribution bar chart
+
+#### `homelab network intrusion [options]`
+
+Display security alerts from Suricata IDS.
+
+**Aliases:** `homelab network alerts`
+
+**Options:**
+- `--severity <level>` - Filter by severity: critical, high, medium, low
+- `--limit <n>` - Maximum alerts to show (default: 50)
+- `--output <format>` - Output format: table, json, csv, yaml
+- `--export <file>` - Export results to file
+
+```bash
+# Show all recent alerts
+homelab network intrusion
+
+# Show only critical alerts
+homelab network intrusion --severity critical
+
+# Limit to 100 alerts
+homelab network intrusion --limit 100
+
+# Export to JSON
+homelab network intrusion --output json --export alerts.json
+```
+
+**Shows:**
+- Time ago
+- Severity (color-coded: 🔴 critical, 🟠 high, 🟡 medium, ⚪ low)
+- Alert type and category
+- Source and destination IPs/ports
+- Protocol
+- Alert summary counts
+
+#### `homelab network status`
+
+Comprehensive network health dashboard combining all monitoring services.
+
+**Alias:** `homelab network st`
+
+```bash
+homelab network status
+```
+
+**Shows:**
+- Service health (nmap, ntopng, Suricata)
+- Active devices count
+- Total network traffic
+- Top 5 bandwidth consumers
+- Security alerts (last 24 hours)
+- Latest critical alert
+- Overall status (healthy/warning/critical)
+
+**Features:**
+- All-in-one network overview
+- Color-coded service status
+- Real-time threat detection
+- Traffic analysis summary
+
+📖 **Full Documentation:** See [Network Monitoring Guide](docs/NETWORK_MONITORING.md) for detailed setup, troubleshooting, and advanced usage.
 
 ---
 
