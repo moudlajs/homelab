@@ -64,39 +64,57 @@ public class ComposeFileParser
 
         // DNS services
         if (lowerName.Contains("adguard") || lowerImage.Contains("adguard"))
+        {
             return ServiceType.Dns;
+        }
 
         if (lowerName.Contains("pihole") || lowerImage.Contains("pihole"))
+        {
             return ServiceType.Dns;
+        }
 
         // VPN services
         if (lowerName.Contains("wireguard") || lowerImage.Contains("wireguard"))
+        {
             return ServiceType.Vpn;
+        }
 
         if (lowerName.Contains("openvpn") || lowerImage.Contains("openvpn"))
+        {
             return ServiceType.Vpn;
+        }
 
         // Monitoring services
         if (lowerName.Contains("prometheus") || lowerImage.Contains("prometheus"))
+        {
             return ServiceType.Monitoring;
+        }
 
         // Dashboard services
         if (lowerName.Contains("grafana") || lowerImage.Contains("grafana"))
+        {
             return ServiceType.Dashboard;
+        }
 
         // Metrics exporters
         if (lowerName.Contains("exporter") || lowerImage.Contains("exporter"))
+        {
             return ServiceType.Metrics;
+        }
 
         // Databases
         if (lowerImage.Contains("postgres") || lowerImage.Contains("mysql") ||
             lowerImage.Contains("mongodb") || lowerImage.Contains("redis"))
+        {
             return ServiceType.Database;
+        }
 
         // Web servers
         if (lowerImage.Contains("nginx") || lowerImage.Contains("apache") ||
             lowerImage.Contains("caddy"))
+        {
             return ServiceType.WebServer;
+        }
 
         return ServiceType.Application;
     }
@@ -107,7 +125,9 @@ public class ComposeFileParser
     private Dictionary<string, string> ParseEnvironment(object? environment)
     {
         if (environment == null)
+        {
             return new Dictionary<string, string>();
+        }
 
         // Environment can be either a list of strings (KEY=VALUE) or a dictionary
         if (environment is List<object> list)
@@ -116,7 +136,10 @@ public class ComposeFileParser
             foreach (var item in list)
             {
                 var str = item.ToString();
-                if (string.IsNullOrEmpty(str)) continue;
+                if (string.IsNullOrEmpty(str))
+                {
+                    continue;
+                }
 
                 var parts = str.Split('=', 2);
                 if (parts.Length == 2)

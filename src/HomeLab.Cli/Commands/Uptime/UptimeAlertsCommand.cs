@@ -1,9 +1,9 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
-using HomeLab.Cli.Services.UptimeKuma;
+using System.ComponentModel;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Output;
-using System.ComponentModel;
+using HomeLab.Cli.Services.UptimeKuma;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.Uptime;
 
@@ -61,7 +61,9 @@ public class UptimeAlertsCommand : AsyncCommand<UptimeAlertsCommand.Settings>
 
         // Try export if requested
         if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, incidents))
+        {
             return 0;
+        }
 
         if (incidents.Count == 0)
         {

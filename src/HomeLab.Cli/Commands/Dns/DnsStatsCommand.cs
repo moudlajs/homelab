@@ -1,8 +1,8 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
+using System.ComponentModel;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Output;
-using System.ComponentModel;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.Dns;
 
@@ -65,7 +65,9 @@ public class DnsStatsCommand : AsyncCommand<DnsStatsCommand.Settings>
 
         // Try export if requested
         if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, stats))
+        {
             return 0;
+        }
 
         // Create stats panel
         var grid = new Grid();
@@ -116,9 +118,14 @@ public class DnsStatsCommand : AsyncCommand<DnsStatsCommand.Settings>
             .CenterLabel();
 
         if (allowedQueries > 0)
+        {
             chart.AddItem("Allowed", allowedQueries, Color.Green);
+        }
+
         if (blockedQueries > 0)
+        {
             chart.AddItem("Blocked", blockedQueries, Color.Red);
+        }
 
         AnsiConsole.Write(chart);
 

@@ -1,8 +1,8 @@
+using System.ComponentModel;
+using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.UptimeKuma;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using HomeLab.Cli.Services.UptimeKuma;
-using HomeLab.Cli.Services.Abstractions;
-using System.ComponentModel;
 
 namespace HomeLab.Cli.Commands.Uptime;
 

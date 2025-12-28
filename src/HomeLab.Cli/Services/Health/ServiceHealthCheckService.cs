@@ -113,7 +113,9 @@ public class ServiceHealthCheckService : IServiceHealthCheckService
         };
 
         if (client == null)
+        {
             return null;
+        }
 
         return await client.GetHealthInfoAsync();
     }

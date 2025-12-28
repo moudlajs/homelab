@@ -1,7 +1,7 @@
+using System.Text;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using HomeLab.Cli.Models;
-using System.Text;
 
 namespace HomeLab.Cli.Services.Docker;
 
@@ -57,7 +57,9 @@ public class DockerService : IDockerService
             c.Names.Any(n => n.Contains(name)));
 
         if (container == null)
+        {
             throw new Exception($"Container '{name}' not found");
+        }
 
         // Start it
         await _client.Containers.StartContainerAsync(
@@ -74,7 +76,9 @@ public class DockerService : IDockerService
             c.Names.Any(n => n.Contains(name)));
 
         if (container == null)
+        {
             throw new Exception($"Container '{name}' not found");
+        }
 
         await _client.Containers.StopContainerAsync(
             container.ID,
@@ -90,7 +94,9 @@ public class DockerService : IDockerService
             c.Names.Any(n => n.Contains(name)));
 
         if (container == null)
+        {
             throw new Exception($"Container '{name}' not found");
+        }
 
         var logsStream = await _client.Containers.GetContainerLogsAsync(
             container.ID,
@@ -109,9 +115,14 @@ public class DockerService : IDockerService
         var (stdout, stderr) = await logsStream.ReadOutputToEndAsync(CancellationToken.None);
 
         if (!string.IsNullOrEmpty(stdout))
+        {
             result.Append(stdout);
+        }
+
         if (!string.IsNullOrEmpty(stderr))
+        {
             result.Append(stderr);
+        }
 
         return result.ToString();
     }
@@ -185,9 +196,14 @@ public class DockerService : IDockerService
         var uptime = DateTime.UtcNow - created;
 
         if (uptime.TotalDays >= 1)
+        {
             return $"{(int)uptime.TotalDays}d {uptime.Hours}h";
+        }
+
         if (uptime.TotalHours >= 1)
+        {
             return $"{(int)uptime.TotalHours}h {uptime.Minutes}m";
+        }
 
         return $"{(int)uptime.TotalMinutes}m";
     }

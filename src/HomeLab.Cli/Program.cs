@@ -1,22 +1,22 @@
-using Microsoft.Extensions.DependencyInjection;
-using Spectre.Console.Cli;
 using HomeLab.Cli.Commands;
 using HomeLab.Cli.Commands.Dns;
-using HomeLab.Cli.Commands.Monitor;
-using HomeLab.Cli.Commands.Vpn;
-using HomeLab.Cli.Commands.Remote;
-using HomeLab.Cli.Commands.Uptime;
-using HomeLab.Cli.Commands.Speedtest;
-using HomeLab.Cli.Commands.Quick;
 using HomeLab.Cli.Commands.HomeAssistant;
+using HomeLab.Cli.Commands.Monitor;
+using HomeLab.Cli.Commands.Quick;
+using HomeLab.Cli.Commands.Remote;
+using HomeLab.Cli.Commands.Speedtest;
 using HomeLab.Cli.Commands.Traefik;
-using HomeLab.Cli.Services.Docker;
-using HomeLab.Cli.Services.Configuration;
-using HomeLab.Cli.Services.Health;
+using HomeLab.Cli.Commands.Uptime;
+using HomeLab.Cli.Commands.Vpn;
 using HomeLab.Cli.Services.Abstractions;
-using HomeLab.Cli.Services.ServiceDiscovery;
+using HomeLab.Cli.Services.Configuration;
+using HomeLab.Cli.Services.Docker;
+using HomeLab.Cli.Services.Health;
 using HomeLab.Cli.Services.Output;
+using HomeLab.Cli.Services.ServiceDiscovery;
 using HomeLab.Cli.Services.Update;
+using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli;
 

@@ -1,8 +1,8 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
 using System.ComponentModel;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Output;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.Dns;
 
@@ -47,7 +47,9 @@ public class DnsBlockedCommand : AsyncCommand<DnsBlockedCommand.Settings>
 
         // Try export if requested
         if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, blockedDomains))
+        {
             return 0;
+        }
 
         if (blockedDomains.Count == 0)
         {

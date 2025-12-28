@@ -1,9 +1,9 @@
+using System.Security.Cryptography;
+using System.Text;
 using HomeLab.Cli.Models;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Configuration;
 using QRCoder;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace HomeLab.Cli.Services.WireGuard;
 
@@ -70,7 +70,9 @@ public class WireGuardClient : IWireGuardClient
         var peers = new List<VpnPeer>();
 
         if (!Directory.Exists(_configPath))
+        {
             return peers;
+        }
 
         // Look for peer config files (peer_*.conf)
         var peerFiles = Directory.GetFiles(_configPath, "peer_*.conf");

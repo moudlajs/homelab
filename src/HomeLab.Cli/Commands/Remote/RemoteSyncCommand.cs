@@ -1,7 +1,7 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
 using System.ComponentModel;
 using HomeLab.Cli.Services.Remote;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.Remote;
 
@@ -189,9 +189,15 @@ public class RemoteSyncCommand : AsyncCommand<RemoteSyncCommand.Settings>
     private string FormatBytes(long bytes)
     {
         if (bytes < 1024)
+        {
             return $"{bytes} B";
+        }
+
         if (bytes < 1024 * 1024)
+        {
             return $"{bytes / 1024.0:F2} KB";
+        }
+
         return $"{bytes / (1024.0 * 1024.0):F2} MB";
     }
 }

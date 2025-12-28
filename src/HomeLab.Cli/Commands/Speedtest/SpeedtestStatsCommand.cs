@@ -1,8 +1,8 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
+using System.ComponentModel;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Output;
-using System.ComponentModel;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.Speedtest;
 
@@ -69,7 +69,9 @@ public class SpeedtestStatsCommand : AsyncCommand<SpeedtestStatsCommand.Settings
 
         // Try export if requested (export recent results)
         if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, recentResults))
+        {
             return 0;
+        }
 
         // Create stats panel
         var grid = new Grid();

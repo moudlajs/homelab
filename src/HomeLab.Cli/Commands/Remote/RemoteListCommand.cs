@@ -1,6 +1,6 @@
+using HomeLab.Cli.Services.Remote;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using HomeLab.Cli.Services.Remote;
 
 namespace HomeLab.Cli.Commands.Remote;
 
@@ -74,13 +74,25 @@ public class RemoteListCommand : Command
         var timeAgo = DateTime.UtcNow - dateTime;
 
         if (timeAgo.TotalMinutes < 1)
+        {
             return "[green]Just now[/]";
+        }
+
         if (timeAgo.TotalMinutes < 60)
+        {
             return $"[dim]{(int)timeAgo.TotalMinutes}m ago[/]";
+        }
+
         if (timeAgo.TotalHours < 24)
+        {
             return $"[dim]{(int)timeAgo.TotalHours}h ago[/]";
+        }
+
         if (timeAgo.TotalDays < 7)
+        {
             return $"[dim]{(int)timeAgo.TotalDays}d ago[/]";
+        }
+
         return $"[dim]{dateTime:yyyy-MM-dd}[/]";
     }
 }
