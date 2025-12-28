@@ -232,6 +232,10 @@ public static class Program
             config.AddCommand<QuickFixCommand>("quick-fix")
                 .WithAlias("qf")
                 .WithDescription("Quick fix service (stop, clear cache, restart)");
+
+            // Shell completion
+            config.AddCommand<CompletionCommand>("completion")
+                .WithDescription("Generate shell completion scripts (bash, zsh)");
         });
 
         return app.Run(args);
