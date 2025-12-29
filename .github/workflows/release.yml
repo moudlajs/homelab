@@ -41,7 +41,10 @@ jobs:
           --self-contained \
           -p:PublishSingleFile=true \
           -p:PublishTrimmed=false \
-          -p:Version=${{ steps.version.outputs.version }}
+          -p:Version=${{ steps.version.outputs.version }} \
+          -p:AssemblyVersion=${{ steps.version.outputs.version }} \
+          -p:FileVersion=${{ steps.version.outputs.version }} \
+          -p:InformationalVersion=${{ steps.version.outputs.version }}
 
     - name: Prepare binary for upload
       run: |
