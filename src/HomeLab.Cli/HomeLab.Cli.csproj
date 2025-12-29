@@ -7,10 +7,7 @@
     <Nullable>enable</Nullable>
 
     <!-- Version Information -->
-    <Version>1.8.0</Version>
-    <AssemblyVersion>1.8.0.0</AssemblyVersion>
-    <FileVersion>1.8.0.0</FileVersion>
-    <InformationalVersion>1.8.0</InformationalVersion>
+    <!-- Version is set dynamically during build via -p:Version parameter -->
     <Product>HomeLab CLI</Product>
     <Authors>HomeLab Team</Authors>
     <Description>Command-line tool for managing Mac Mini M4 homelab services</Description>
