@@ -16,10 +16,14 @@ public static class ByteFormatter
     public static string Format(long bytes, int decimalPlaces = 2)
     {
         if (bytes < 0)
+        {
             return $"-{Format(-bytes, decimalPlaces)}";
+        }
 
         if (bytes == 0)
+        {
             return "0 B";
+        }
 
         double size = bytes;
         int unitIndex = 0;
@@ -41,10 +45,14 @@ public static class ByteFormatter
     public static string FormatCompact(long bytes)
     {
         if (bytes < 0)
+        {
             return $"-{FormatCompact(-bytes)}";
+        }
 
         if (bytes == 0)
+        {
             return "0 B";
+        }
 
         double size = bytes;
         int unitIndex = 0;
@@ -89,10 +97,14 @@ public static class ByteFormatter
     public static string ParseAndFormat(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
+        {
             return "0 B";
+        }
 
         if (long.TryParse(value, out var bytes))
+        {
             return FormatCompact(bytes);
+        }
 
         // Return original if already formatted or unparseable
         return value;
