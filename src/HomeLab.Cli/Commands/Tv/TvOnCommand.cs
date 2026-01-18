@@ -25,9 +25,14 @@ public class TvOnCommand : AsyncCommand<TvOnCommand.Settings>
             AnsiConsole.MarkupLine($"[green]Magic packet sent to {config.Name}![/]");
             await Task.Delay(5000);
             if (await _wolService.IsReachableAsync(config.IpAddress))
+            {
                 AnsiConsole.MarkupLine($"[green]{config.Name} is now online![/]");
+            }
             else
+            {
                 AnsiConsole.MarkupLine("[yellow]TV may take a moment to boot.[/]");
+            }
+
             return 0;
         }
         AnsiConsole.MarkupLine("[red]Failed to send Wake-on-LAN packet.[/]");
@@ -37,7 +42,11 @@ public class TvOnCommand : AsyncCommand<TvOnCommand.Settings>
     private static async Task<TvConfig?> LoadTvConfigAsync()
     {
         var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".homelab", "tv.json");
-        if (!File.Exists(path)) return null;
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
         try { return JsonSerializer.Deserialize<TvConfig>(await File.ReadAllTextAsync(path)); }
         catch { return null; }
     }

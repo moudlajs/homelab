@@ -34,7 +34,11 @@ public class TvOffCommand : AsyncCommand<TvOffCommand.Settings>
     private static async Task<TvConfig?> LoadTvConfigAsync()
     {
         var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".homelab", "tv.json");
-        if (!File.Exists(path)) return null;
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
         try { return JsonSerializer.Deserialize<TvConfig>(await File.ReadAllTextAsync(path)); }
         catch { return null; }
     }

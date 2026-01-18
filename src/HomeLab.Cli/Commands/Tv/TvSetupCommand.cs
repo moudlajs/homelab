@@ -14,9 +14,9 @@ public class TvSetupCommand : AsyncCommand<TvSetupCommand.Settings>
 
     public class Settings : CommandSettings
     {
-        [CommandOption("--ip <IP>")] [Description("TV IP address")] public string? IpAddress { get; set; }
-        [CommandOption("--mac <MAC>")] [Description("TV MAC address for Wake-on-LAN")] public string? MacAddress { get; set; }
-        [CommandOption("--name <NAME>")] [Description("Friendly name for the TV")] public string? Name { get; set; }
+        [CommandOption("--ip <IP>")][Description("TV IP address")] public string? IpAddress { get; set; }
+        [CommandOption("--mac <MAC>")][Description("TV MAC address for Wake-on-LAN")] public string? MacAddress { get; set; }
+        [CommandOption("--name <NAME>")][Description("Friendly name for the TV")] public string? Name { get; set; }
     }
 
     public TvSetupCommand(IWakeOnLanService wolService) => _wolService = wolService;
@@ -35,9 +35,15 @@ public class TvSetupCommand : AsyncCommand<TvSetupCommand.Settings>
         if (!isReachable)
         {
             AnsiConsole.MarkupLine("[yellow]TV is not reachable. It may be off.[/]");
-            if (!AnsiConsole.Confirm("Continue setup anyway?", false)) return 1;
+            if (!AnsiConsole.Confirm("Continue setup anyway?", false))
+            {
+                return 1;
+            }
         }
-        else AnsiConsole.MarkupLine("[green]TV is reachable![/]");
+        else
+        {
+            AnsiConsole.MarkupLine("[green]TV is reachable![/]");
+        }
 
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[bold]Step 2:[/] Pairing with TV...");
@@ -61,7 +67,10 @@ public class TvSetupCommand : AsyncCommand<TvSetupCommand.Settings>
         catch (Exception ex)
         {
             AnsiConsole.MarkupLine($"[red]Connection failed: {ex.Message}[/]");
-            if (!AnsiConsole.Confirm("Save config anyway (WoL only)?", true)) return 1;
+            if (!AnsiConsole.Confirm("Save config anyway (WoL only)?", true))
+            {
+                return 1;
+            }
         }
         finally { await client.DisconnectAsync(); }
 

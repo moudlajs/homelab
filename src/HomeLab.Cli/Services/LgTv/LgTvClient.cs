@@ -42,7 +42,9 @@ public class LgTvClient : ILgTvClient
 
             var payload = JsonSerializer.Deserialize<Dictionary<string, object>>(RegisterPayload)!;
             if (!string.IsNullOrEmpty(_clientKey))
+            {
                 payload["client-key"] = _clientKey;
+            }
 
             var registerMessage = new { type = "register", id = "register_0", payload };
             await SendMessageAsync(registerMessage);
@@ -52,11 +54,15 @@ public class LgTvClient : ILgTvClient
 
             var response = await Task.WhenAny(tcs.Task, Task.Delay(30000));
             if (response != tcs.Task)
+            {
                 throw new TimeoutException("Registration timed out. Accept the prompt on the TV.");
+            }
 
             var result = await tcs.Task;
             if (result.TryGetProperty("client-key", out var keyElement))
+            {
                 _clientKey = keyElement.GetString();
+            }
 
             return _clientKey;
         }
@@ -84,7 +90,10 @@ public class LgTvClient : ILgTvClient
         {
             using var ping = new Ping();
             var reply = await ping.SendPingAsync(ipAddress, 2000);
-            if (reply.Status != IPStatus.Success) return false;
+            if (reply.Status != IPStatus.Success)
+            {
+                return false;
+            }
 
             using var testSocket = new ClientWebSocket();
             var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
@@ -114,15 +123,22 @@ public class LgTvClient : ILgTvClient
         var response = await SendRequestAsync("ssap://com.webos.applicationManager/listLaunchPoints", null);
         var apps = new List<TvApp>();
         if (response.TryGetProperty("launchPoints", out var launchPoints))
+        {
             foreach (var app in launchPoints.EnumerateArray())
+            {
                 apps.Add(new TvApp { Id = app.GetProperty("id").GetString() ?? "", Name = app.GetProperty("title").GetString() ?? "" });
+            }
+        }
+
         return apps;
     }
 
     private async Task<JsonElement> SendRequestAsync(string uri, object? payload)
     {
         if (_webSocket == null || _webSocket.State != WebSocketState.Open)
+        {
             throw new InvalidOperationException("Not connected to TV");
+        }
 
         var id = $"request_{_messageId++}";
         var tcs = new TaskCompletionSource<JsonElement>();
@@ -137,7 +153,11 @@ public class LgTvClient : ILgTvClient
 
     private async Task SendMessageAsync(object message)
     {
-        if (_webSocket == null) return;
+        if (_webSocket == null)
+        {
+            return;
+        }
+
         var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
         await _webSocket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
     }
@@ -150,7 +170,11 @@ public class LgTvClient : ILgTvClient
             while (_webSocket != null && _webSocket.State == WebSocketState.Open)
             {
                 var result = await _webSocket.ReceiveAsync(buffer, CancellationToken.None);
-                if (result.MessageType == WebSocketMessageType.Close) break;
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    break;
+                }
+
                 ProcessMessage(Encoding.UTF8.GetString(buffer, 0, result.Count));
             }
         }

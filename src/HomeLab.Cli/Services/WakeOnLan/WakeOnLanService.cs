@@ -54,11 +54,15 @@ public class WakeOnLanService : IWakeOnLanService
         var cleanMac = macAddress.Replace(":", "").Replace("-", "").Replace(" ", "").ToUpperInvariant();
 
         if (cleanMac.Length != 12)
+        {
             throw new ArgumentException($"Invalid MAC address format: {macAddress}");
+        }
 
         var macBytes = new byte[6];
         for (int i = 0; i < 6; i++)
+        {
             macBytes[i] = Convert.ToByte(cleanMac.Substring(i * 2, 2), 16);
+        }
 
         return macBytes;
     }
@@ -67,9 +71,15 @@ public class WakeOnLanService : IWakeOnLanService
     {
         var packet = new byte[6 + 16 * 6];
         for (int i = 0; i < 6; i++)
+        {
             packet[i] = 0xFF;
+        }
+
         for (int i = 0; i < 16; i++)
+        {
             Array.Copy(macBytes, 0, packet, 6 + i * 6, 6);
+        }
+
         return packet;
     }
 }
