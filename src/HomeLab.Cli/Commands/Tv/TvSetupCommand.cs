@@ -26,9 +26,27 @@ public class TvSetupCommand : AsyncCommand<TvSetupCommand.Settings>
         AnsiConsole.Write(new Rule("[blue]TV Setup Wizard[/]").RuleStyle("grey"));
         AnsiConsole.WriteLine();
 
-        var ipAddress = settings.IpAddress ?? AnsiConsole.Prompt(new TextPrompt<string>("TV IP address:"));
-        var macAddress = settings.MacAddress ?? AnsiConsole.Prompt(new TextPrompt<string>("TV MAC address (XX:XX:XX:XX:XX:XX):"));
-        var name = settings.Name ?? AnsiConsole.Prompt(new TextPrompt<string>("Friendly name:").DefaultValue("Living Room TV"));
+        // Load existing config if available
+        var existingConfig = await LoadTvConfigAsync();
+        if (existingConfig != null)
+        {
+            AnsiConsole.MarkupLine($"[dim]Existing config found: {existingConfig.Name} ({existingConfig.IpAddress})[/]");
+            AnsiConsole.MarkupLine(existingConfig.ClientKey != null ? "[green]Already paired[/]" : "[yellow]Not paired yet[/]");
+            AnsiConsole.WriteLine();
+        }
+
+        // Use existing values as defaults
+        var defaultIp = existingConfig?.IpAddress ?? "";
+        var defaultMac = existingConfig?.MacAddress ?? "";
+        var defaultName = existingConfig?.Name ?? "Living Room TV";
+
+        var ipAddress = settings.IpAddress ?? AnsiConsole.Prompt(new TextPrompt<string>("TV IP address:").DefaultValue(defaultIp).AllowEmpty());
+        if (string.IsNullOrEmpty(ipAddress)) { ipAddress = defaultIp; }
+
+        var macAddress = settings.MacAddress ?? AnsiConsole.Prompt(new TextPrompt<string>("TV MAC address:").DefaultValue(defaultMac).AllowEmpty());
+        if (string.IsNullOrEmpty(macAddress)) { macAddress = defaultMac; }
+
+        var name = settings.Name ?? AnsiConsole.Prompt(new TextPrompt<string>("Friendly name:").DefaultValue(defaultName));
 
         AnsiConsole.MarkupLine("[bold]Step 1:[/] Testing connectivity...");
         var isReachable = await _wolService.IsReachableAsync(ipAddress);
@@ -89,5 +107,17 @@ public class TvSetupCommand : AsyncCommand<TvSetupCommand.Settings>
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[dim]Commands: homelab tv on | homelab tv off | homelab tv status[/]");
         return 0;
+    }
+
+    private static async Task<TvConfig?> LoadTvConfigAsync()
+    {
+        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".homelab", "tv.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        try { return JsonSerializer.Deserialize<TvConfig>(await File.ReadAllTextAsync(path)); }
+        catch { return null; }
     }
 }
