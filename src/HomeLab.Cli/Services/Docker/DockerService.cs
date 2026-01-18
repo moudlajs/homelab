@@ -188,6 +188,72 @@ public class DockerService : IDockerService
         };
     }
 
+    public async Task<string> ExecInContainerAsync(string containerName, params string[] command)
+    {
+        var containers = await _client.Containers.ListContainersAsync(
+            new ContainersListParameters { All = true });
+
+        var container = containers.FirstOrDefault(c =>
+            c.Names.Any(n => n.TrimStart('/').Equals(containerName, StringComparison.OrdinalIgnoreCase)) ||
+            c.Names.Any(n => n.Contains(containerName)));
+
+        if (container == null)
+        {
+            throw new Exception($"Container '{containerName}' not found");
+        }
+
+        if (container.State != "running")
+        {
+            throw new Exception($"Container '{containerName}' is not running");
+        }
+
+        // Create exec instance
+        var execCreateResponse = await _client.Exec.ExecCreateContainerAsync(
+            container.ID,
+            new ContainerExecCreateParameters
+            {
+                Cmd = command,
+                AttachStdout = true,
+                AttachStderr = true
+            });
+
+        // Start exec and capture output
+        using var stream = await _client.Exec.StartAndAttachContainerExecAsync(
+            execCreateResponse.ID,
+            false);
+
+        var (stdout, stderr) = await stream.ReadOutputToEndAsync(CancellationToken.None);
+
+        if (!string.IsNullOrEmpty(stderr))
+        {
+            throw new Exception($"Command error: {stderr}");
+        }
+
+        return stdout.Trim();
+    }
+
+    public async Task<bool> ContainerExistsAsync(string containerName)
+    {
+        var containers = await _client.Containers.ListContainersAsync(
+            new ContainersListParameters { All = true });
+
+        return containers.Any(c =>
+            c.Names.Any(n => n.TrimStart('/').Equals(containerName, StringComparison.OrdinalIgnoreCase)) ||
+            c.Names.Any(n => n.Contains(containerName)));
+    }
+
+    public async Task<bool> IsContainerRunningAsync(string containerName)
+    {
+        var containers = await _client.Containers.ListContainersAsync(
+            new ContainersListParameters { All = true });
+
+        var container = containers.FirstOrDefault(c =>
+            c.Names.Any(n => n.TrimStart('/').Equals(containerName, StringComparison.OrdinalIgnoreCase)) ||
+            c.Names.Any(n => n.Contains(containerName)));
+
+        return container?.State == "running";
+    }
+
     /// <summary>
     /// Helper method to calculate human-readable uptime.
     /// </summary>

@@ -103,6 +103,8 @@ public static class Program
             config.AddBranch("vpn", vpn =>
             {
                 vpn.SetDescription("Manage VPN peers and configuration");
+                vpn.AddCommand<VpnSetupCommand>("setup")
+                    .WithDescription("Interactive wizard to set up VPN server");
                 vpn.AddCommand<VpnStatusCommand>("status")
                     .WithAlias("ls")
                     .WithAlias("list")

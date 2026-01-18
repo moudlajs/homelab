@@ -106,4 +106,33 @@ PersistentKeepalive = 25";
 
         return Task.FromResult(qrCodeImage);
     }
+
+    public Task<VpnServerConfig> GetServerConfigAsync()
+    {
+        return Task.FromResult(new VpnServerConfig
+        {
+            ServerPublicKey = "MOCK_SERVER_PUBLIC_KEY_BASE64==",
+            ServerEndpoint = "homelab.example.com",
+            ServerPort = 51820,
+            AllowedIPs = "0.0.0.0/0",
+            DNS = "10.8.0.1",
+            Subnet = "10.8.0.0/24"
+        });
+    }
+
+    public Task UpdateServerConfigAsync(VpnServerConfig config)
+    {
+        // Mock - do nothing
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> IsConfiguredAsync()
+    {
+        return Task.FromResult(true);
+    }
+
+    public Task<string?> GetServerPublicKeyFromContainerAsync()
+    {
+        return Task.FromResult<string?>("MOCK_SERVER_PUBLIC_KEY_BASE64==");
+    }
 }
