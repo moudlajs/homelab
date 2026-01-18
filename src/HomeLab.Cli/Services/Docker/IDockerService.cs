@@ -42,6 +42,24 @@ public interface IDockerService
     /// Gets Docker system information.
     /// </summary>
     Task<SystemInfo> GetSystemInfoAsync();
+
+    /// <summary>
+    /// Executes a command inside a running container.
+    /// </summary>
+    /// <param name="containerName">Container name or ID</param>
+    /// <param name="command">Command and arguments to execute</param>
+    /// <returns>Command output (stdout)</returns>
+    Task<string> ExecInContainerAsync(string containerName, params string[] command);
+
+    /// <summary>
+    /// Checks if a container exists (regardless of running state).
+    /// </summary>
+    Task<bool> ContainerExistsAsync(string containerName);
+
+    /// <summary>
+    /// Checks if a container is running.
+    /// </summary>
+    Task<bool> IsContainerRunningAsync(string containerName);
 }
 
 /// <summary>

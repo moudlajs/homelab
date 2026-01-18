@@ -1,5 +1,6 @@
 using HomeLab.Cli.Services.AdGuard;
 using HomeLab.Cli.Services.Configuration;
+using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Grafana;
 using HomeLab.Cli.Services.HomeAssistant;
 using HomeLab.Cli.Services.Mocks;
@@ -21,11 +22,13 @@ public class ServiceClientFactory : IServiceClientFactory
 {
     private readonly IHomelabConfigService _configService;
     private readonly HttpClient _httpClient;
+    private readonly IDockerService _dockerService;
 
-    public ServiceClientFactory(IHomelabConfigService configService, HttpClient httpClient)
+    public ServiceClientFactory(IHomelabConfigService configService, HttpClient httpClient, IDockerService dockerService)
     {
         _configService = configService;
         _httpClient = httpClient;
+        _dockerService = dockerService;
     }
 
     public IAdGuardClient CreateAdGuardClient()
@@ -45,8 +48,7 @@ public class ServiceClientFactory : IServiceClientFactory
             return new MockWireGuardClient();
         }
 
-        // Real WireGuardClient implementation (Day 3)
-        return new WireGuardClient(_configService);
+        return new WireGuardClient(_configService, _dockerService);
     }
 
     public IPrometheusClient CreatePrometheusClient()

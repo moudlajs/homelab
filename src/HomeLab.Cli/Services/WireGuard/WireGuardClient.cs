@@ -1,8 +1,9 @@
 using System.Security.Cryptography;
-using System.Text;
+using System.Text.Json;
 using HomeLab.Cli.Models;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Configuration;
+using HomeLab.Cli.Services.Docker;
 using QRCoder;
 
 namespace HomeLab.Cli.Services.WireGuard;
@@ -13,15 +14,16 @@ namespace HomeLab.Cli.Services.WireGuard;
 public class WireGuardClient : IWireGuardClient
 {
     private readonly IHomelabConfigService _configService;
+    private readonly IDockerService _dockerService;
     private readonly string _configPath;
-    private const string ServerPublicKey = "SERVER_PUBLIC_KEY_PLACEHOLDER";
-    private const string ServerEndpoint = "your-server.example.com:51820";
-    private const string AllowedIPs = "10.8.0.0/24";
+    private readonly string _serverConfigFile;
+    private const string ContainerName = "homelab_wireguard";
     private const int BaseIP = 10;
 
-    public WireGuardClient(IHomelabConfigService configService)
+    public WireGuardClient(IHomelabConfigService configService, IDockerService dockerService)
     {
         _configService = configService;
+        _dockerService = dockerService;
 
         var serviceConfig = _configService.GetServiceConfig("wireguard");
         _configPath = serviceConfig.ConfigPath ?? "~/wireguard";
@@ -35,34 +37,99 @@ public class WireGuardClient : IWireGuardClient
 
         // Ensure config directory exists
         Directory.CreateDirectory(_configPath);
+
+        _serverConfigFile = Path.Combine(_configPath, "server.json");
     }
 
     public string ServiceName => "WireGuard";
 
     public async Task<bool> IsHealthyAsync()
     {
-        // Check if config directory exists and is accessible
-        return await Task.Run(() => Directory.Exists(_configPath));
+        // Check if config directory exists and server is configured
+        if (!Directory.Exists(_configPath))
+            return false;
+
+        var config = await GetServerConfigAsync();
+        return config.IsConfigured;
     }
 
     public async Task<ServiceHealthInfo> GetHealthInfoAsync()
     {
-        var isHealthy = await IsHealthyAsync();
+        var isConfigured = await IsConfiguredAsync();
         var peers = await GetPeersAsync();
+        var containerRunning = await _dockerService.IsContainerRunningAsync(ContainerName);
+
+        var status = containerRunning && isConfigured ? "Running" :
+                     containerRunning ? "Container running, not configured" :
+                     isConfigured ? "Configured, container not running" : "Not configured";
 
         return new ServiceHealthInfo
         {
             ServiceName = ServiceName,
-            IsHealthy = isHealthy,
-            Status = isHealthy ? "Running" : "Configuration not found",
-            Message = isHealthy ? $"Config path: {_configPath}" : $"Config path not accessible: {_configPath}",
+            IsHealthy = containerRunning && isConfigured,
+            Status = status,
+            Message = $"Config path: {_configPath}",
             Metrics = new Dictionary<string, string>
             {
                 { "Active Peers", peers.Count(p => p.IsActive).ToString() },
                 { "Total Peers", peers.Count.ToString() },
-                { "Config Path", _configPath }
+                { "Container", containerRunning ? "Running" : "Stopped" },
+                { "Configured", isConfigured ? "Yes" : "No" }
             }
         };
+    }
+
+    public async Task<bool> IsConfiguredAsync()
+    {
+        var config = await GetServerConfigAsync();
+        return config.IsConfigured;
+    }
+
+    public async Task<VpnServerConfig> GetServerConfigAsync()
+    {
+        if (!File.Exists(_serverConfigFile))
+        {
+            return new VpnServerConfig();
+        }
+
+        try
+        {
+            var json = await File.ReadAllTextAsync(_serverConfigFile);
+            return JsonSerializer.Deserialize<VpnServerConfig>(json) ?? new VpnServerConfig();
+        }
+        catch
+        {
+            return new VpnServerConfig();
+        }
+    }
+
+    public async Task UpdateServerConfigAsync(VpnServerConfig config)
+    {
+        var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(_serverConfigFile, json);
+    }
+
+    public async Task<string?> GetServerPublicKeyFromContainerAsync()
+    {
+        try
+        {
+            // Check if container is running
+            if (!await _dockerService.IsContainerRunningAsync(ContainerName))
+            {
+                return null;
+            }
+
+            // Try to read the server public key from the container
+            // The linuxserver/wireguard image stores keys in /config/server/
+            var publicKey = await _dockerService.ExecInContainerAsync(
+                ContainerName, "cat", "/config/server/publickey-server");
+
+            return string.IsNullOrWhiteSpace(publicKey) ? null : publicKey.Trim();
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public async Task<List<VpnPeer>> GetPeersAsync()
@@ -104,6 +171,13 @@ public class WireGuardClient : IWireGuardClient
             throw new ArgumentException("Invalid peer name", nameof(name));
         }
 
+        // Check if configured
+        var serverConfig = await GetServerConfigAsync();
+        if (!serverConfig.IsConfigured)
+        {
+            throw new InvalidOperationException("VPN server is not configured. Run 'homelab vpn setup' first.");
+        }
+
         // Check if peer already exists
         var existingPeers = await GetPeersAsync();
         if (existingPeers.Any(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
@@ -119,13 +193,13 @@ public class WireGuardClient : IWireGuardClient
         var peerIP = $"10.8.0.{ipOctet}/32";
 
         // Generate peer configuration
-        var peerConfig = GeneratePeerConfig(name, privateKey, peerIP);
+        var peerConfig = GeneratePeerConfig(name, privateKey, peerIP, serverConfig);
 
         // Save peer config to file
         var peerFilePath = Path.Combine(_configPath, $"peer_{name}.conf");
         await File.WriteAllTextAsync(peerFilePath, peerConfig);
 
-        // Also save peer public key for server-side config (optional)
+        // Also save peer public key for server-side config
         var peerInfoPath = Path.Combine(_configPath, $"peer_{name}.info");
         var peerInfo = $"# Peer: {name}\n" +
                       $"# PublicKey: {publicKey}\n" +
@@ -200,17 +274,17 @@ public class WireGuardClient : IWireGuardClient
         return peer;
     }
 
-    private string GeneratePeerConfig(string name, string privateKey, string address)
+    private string GeneratePeerConfig(string name, string privateKey, string address, VpnServerConfig serverConfig)
     {
         return $@"[Interface]
 PrivateKey = {privateKey}
 Address = {address}
-DNS = 10.8.0.1
+DNS = {serverConfig.DNS}
 
 [Peer]
-PublicKey = {ServerPublicKey}
-Endpoint = {ServerEndpoint}
-AllowedIPs = {AllowedIPs}
+PublicKey = {serverConfig.ServerPublicKey}
+Endpoint = {serverConfig.ServerEndpoint}:{serverConfig.ServerPort}
+AllowedIPs = {serverConfig.AllowedIPs}
 PersistentKeepalive = 25
 
 # Peer: {name}
@@ -234,7 +308,8 @@ PersistentKeepalive = 25
         var privateKey = Convert.ToBase64String(privateKeyBytes);
 
         // For a real implementation, you'd compute the public key from the private key
-        // For now, we'll generate a random one (in production, use actual Curve25519)
+        // using Curve25519. For now, we generate a random one.
+        // In production, consider using a library like libsodium or BouncyCastle.
         var publicKeyBytes = new byte[32];
         rng.GetBytes(publicKeyBytes);
         var publicKey = Convert.ToBase64String(publicKeyBytes);
