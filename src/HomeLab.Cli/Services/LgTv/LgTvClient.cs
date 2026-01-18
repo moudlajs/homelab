@@ -15,7 +15,7 @@ public class LgTvClient : ILgTvClient
     private string? _clientKey;
     private int _messageId = 1;
     private readonly Dictionary<string, TaskCompletionSource<JsonElement>> _pendingRequests = new();
-    private const int WebSocketPort = 3000;
+    private static readonly int[] WebSocketPorts = { 3000, 3001 }; // 3000=ws, 3001=wss
 
     private const string RegisterPayload = @"{
         ""forcePairing"": false,
@@ -30,47 +30,69 @@ public class LgTvClient : ILgTvClient
     public async Task<string?> ConnectAsync(string ipAddress, string? clientKey = null)
     {
         _clientKey = clientKey;
-        _webSocket = new ClientWebSocket();
+        Exception? lastException = null;
 
-        try
+        // Try both ports (3000 for older TVs, 3001 for newer TVs with SSL)
+        foreach (var port in WebSocketPorts)
         {
-            var uri = new Uri($"ws://{ipAddress}:{WebSocketPort}");
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            await _webSocket.ConnectAsync(uri, cts.Token);
-
-            _ = ReceiveMessagesAsync();
-
-            var payload = JsonSerializer.Deserialize<Dictionary<string, object>>(RegisterPayload)!;
-            if (!string.IsNullOrEmpty(_clientKey))
+            try
             {
-                payload["client-key"] = _clientKey;
+                _webSocket = new ClientWebSocket();
+                // Skip SSL certificate validation for self-signed TV certs
+                if (port == 3001)
+                {
+                    _webSocket.Options.RemoteCertificateValidationCallback = (_, _, _, _) => true;
+                }
+
+                var scheme = port == 3001 ? "wss" : "ws";
+                var uri = new Uri($"{scheme}://{ipAddress}:{port}");
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+                await _webSocket.ConnectAsync(uri, cts.Token);
+
+                _ = ReceiveMessagesAsync();
+
+                var payload = JsonSerializer.Deserialize<Dictionary<string, object>>(RegisterPayload)!;
+                if (!string.IsNullOrEmpty(_clientKey))
+                {
+                    payload["client-key"] = _clientKey;
+                }
+
+                var registerMessage = new { type = "register", id = "register_0", payload };
+                await SendMessageAsync(registerMessage);
+
+                var tcs = new TaskCompletionSource<JsonElement>();
+                _pendingRequests["register_0"] = tcs;
+
+                var response = await Task.WhenAny(tcs.Task, Task.Delay(30000));
+                if (response != tcs.Task)
+                {
+                    throw new TimeoutException("Registration timed out. Did you accept the prompt on the TV?");
+                }
+
+                var result = await tcs.Task;
+                if (result.TryGetProperty("client-key", out var keyElement))
+                {
+                    _clientKey = keyElement.GetString();
+                }
+
+                // If we got here but no client key, pairing wasn't accepted
+                if (string.IsNullOrEmpty(_clientKey))
+                {
+                    throw new InvalidOperationException("TV responded but no client key received. Did you accept the pairing prompt on TV?");
+                }
+
+                return _clientKey;
             }
-
-            var registerMessage = new { type = "register", id = "register_0", payload };
-            await SendMessageAsync(registerMessage);
-
-            var tcs = new TaskCompletionSource<JsonElement>();
-            _pendingRequests["register_0"] = tcs;
-
-            var response = await Task.WhenAny(tcs.Task, Task.Delay(30000));
-            if (response != tcs.Task)
+            catch (Exception ex)
             {
-                throw new TimeoutException("Registration timed out. Accept the prompt on the TV.");
+                lastException = ex;
+                await DisconnectAsync();
+                // Try next port
             }
-
-            var result = await tcs.Task;
-            if (result.TryGetProperty("client-key", out var keyElement))
-            {
-                _clientKey = keyElement.GetString();
-            }
-
-            return _clientKey;
         }
-        catch
-        {
-            await DisconnectAsync();
-            throw;
-        }
+
+        throw lastException ?? new Exception("Failed to connect to TV on any port");
     }
 
     public async Task DisconnectAsync()
@@ -95,14 +117,27 @@ public class LgTvClient : ILgTvClient
                 return false;
             }
 
-            using var testSocket = new ClientWebSocket();
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-            try
+            // Try both ports
+            foreach (var port in WebSocketPorts)
             {
-                await testSocket.ConnectAsync(new Uri($"ws://{ipAddress}:{WebSocketPort}"), cts.Token);
-                return true;
+                using var testSocket = new ClientWebSocket();
+                if (port == 3001)
+                {
+                    testSocket.Options.RemoteCertificateValidationCallback = (_, _, _, _) => true;
+                }
+
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                var scheme = port == 3001 ? "wss" : "ws";
+                try
+                {
+                    await testSocket.ConnectAsync(new Uri($"{scheme}://{ipAddress}:{port}"), cts.Token);
+                    return true;
+                }
+                catch { /* try next port */ }
             }
-            catch { return false; }
+
+            // If ping worked but WebSocket didn't, TV might still be on (just WebOS not responding)
+            return true;
         }
         catch { return false; }
     }
