@@ -47,7 +47,9 @@ public class WireGuardClient : IWireGuardClient
     {
         // Check if config directory exists and server is configured
         if (!Directory.Exists(_configPath))
+        {
             return false;
+        }
 
         var config = await GetServerConfigAsync();
         return config.IsConfigured;
