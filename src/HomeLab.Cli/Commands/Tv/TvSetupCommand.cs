@@ -53,21 +53,27 @@ public class TvSetupCommand : AsyncCommand<TvSetupCommand.Settings>
         var client = new LgTvClient();
         try
         {
-            await AnsiConsole.Status().Spinner(Spinner.Known.Dots).StartAsync("Connecting...", async _ =>
+            await AnsiConsole.Status().Spinner(Spinner.Known.Dots).StartAsync("Connecting (trying ports 3000 and 3001)...", async _ =>
             {
                 clientKey = await client.ConnectAsync(ipAddress);
             });
-            AnsiConsole.MarkupLine("[green]Successfully paired![/]");
+            AnsiConsole.MarkupLine("[green]Successfully paired! Client key saved.[/]");
         }
         catch (TimeoutException)
         {
-            AnsiConsole.MarkupLine("[yellow]Pairing timed out.[/]");
-            if (!AnsiConsole.Confirm("Save config anyway (WoL only)?", true)) { await client.DisconnectAsync(); return 1; }
+            AnsiConsole.MarkupLine("[yellow]Pairing timed out. Make sure you accept the prompt on TV![/]");
+            if (!AnsiConsole.Confirm("Save config anyway (Wake-on-LAN only, no off/control)?", true)) { await client.DisconnectAsync(); return 1; }
+        }
+        catch (InvalidOperationException ex)
+        {
+            AnsiConsole.MarkupLine($"[yellow]{ex.Message}[/]");
+            if (!AnsiConsole.Confirm("Save config anyway (Wake-on-LAN only, no off/control)?", true)) { await client.DisconnectAsync(); return 1; }
         }
         catch (Exception ex)
         {
             AnsiConsole.MarkupLine($"[red]Connection failed: {ex.Message}[/]");
-            if (!AnsiConsole.Confirm("Save config anyway (WoL only)?", true))
+            AnsiConsole.MarkupLine("[dim]Make sure TV is ON and 'LG Connect Apps' is enabled in TV settings.[/]");
+            if (!AnsiConsole.Confirm("Save config anyway (Wake-on-LAN only)?", true))
             {
                 return 1;
             }
