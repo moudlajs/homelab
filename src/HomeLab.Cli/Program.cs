@@ -7,6 +7,7 @@ using HomeLab.Cli.Commands.Quick;
 using HomeLab.Cli.Commands.Remote;
 using HomeLab.Cli.Commands.Speedtest;
 using HomeLab.Cli.Commands.Traefik;
+using HomeLab.Cli.Commands.Tv;
 using HomeLab.Cli.Commands.Uptime;
 using HomeLab.Cli.Commands.Vpn;
 using HomeLab.Cli.Services.Abstractions;
@@ -17,6 +18,7 @@ using HomeLab.Cli.Services.Network;
 using HomeLab.Cli.Services.Output;
 using HomeLab.Cli.Services.ServiceDiscovery;
 using HomeLab.Cli.Services.Update;
+using HomeLab.Cli.Services.WakeOnLan;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 
@@ -55,6 +57,9 @@ public static class Program
 
         // Network monitoring services
         services.AddSingleton<INmapService, NmapService>();
+
+        // TV control services
+        services.AddSingleton<IWakeOnLanService, WakeOnLanService>();
 
         // Create registrar to connect Spectre with DI
         var registrar = new TypeRegistrar(services);
@@ -243,6 +248,21 @@ public static class Program
                     .WithDescription("Comprehensive network health overview");
             });
 
+            // TV Control - LG WebOS Smart TV
+            config.AddBranch("tv", tv =>
+            {
+                tv.SetDescription("Control LG WebOS Smart TV");
+                tv.AddCommand<TvStatusCommand>("status")
+                    .WithAlias("st")
+                    .WithDescription("Check TV status and connectivity");
+                tv.AddCommand<TvOnCommand>("on")
+                    .WithDescription("Turn TV on via Wake-on-LAN");
+                tv.AddCommand<TvOffCommand>("off")
+                    .WithDescription("Turn TV off via WebOS API");
+                tv.AddCommand<TvSetupCommand>("setup")
+                    .WithDescription("Configure and pair with TV");
+            });
+
             // Phase 7: Quick Actions - Fast operations for daily use
             config.AddCommand<QuickRestartCommand>("quick-restart")
                 .WithAlias("qr")
@@ -259,6 +279,11 @@ public static class Program
             config.AddCommand<QuickFixCommand>("quick-fix")
                 .WithAlias("qf")
                 .WithDescription("Quick fix service (stop, clear cache, restart)");
+
+            config.AddCommand<QuickDogTvCommand>("quick-dog-tv")
+                .WithAlias("dog-tv")
+                .WithAlias("dtv")
+                .WithDescription("Quick turn on TV for your dog");
 
             // Shell completion
             config.AddCommand<CompletionCommand>("completion")
