@@ -261,6 +261,14 @@ public static class Program
                     .WithDescription("Turn TV off via WebOS API");
                 tv.AddCommand<TvSetupCommand>("setup")
                     .WithDescription("Configure and pair with TV");
+                tv.AddCommand<TvAppsCommand>("apps")
+                    .WithDescription("List installed apps on TV");
+                tv.AddCommand<TvLaunchCommand>("launch")
+                    .WithDescription("Launch an app on TV");
+                tv.AddCommand<TvKeyCommand>("key")
+                    .WithDescription("Send remote control key to TV");
+                tv.AddCommand<TvDebugCommand>("debug")
+                    .WithDescription("Debug TV connection and app detection");
             });
 
             // Phase 7: Quick Actions - Fast operations for daily use

@@ -10,6 +10,7 @@ public class TvConfig
     public string MacAddress { get; set; } = "";
     public string? ClientKey { get; set; }
     public TvType Type { get; set; } = TvType.LgWebOs;
+    public string? DefaultApp { get; set; }
 }
 
 /// <summary>
