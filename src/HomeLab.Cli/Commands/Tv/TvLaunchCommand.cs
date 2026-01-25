@@ -32,6 +32,19 @@ public class TvLaunchCommand : AsyncCommand<TvLaunchCommand.Settings>
             return 1;
         }
 
+        // Handle "default" keyword - read from config
+        var appToFind = settings.App;
+        if (appToFind.Equals("default", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrEmpty(config.DefaultApp))
+            {
+                AnsiConsole.MarkupLine("[red]No default app configured.[/]");
+                AnsiConsole.MarkupLine("[dim]Set DefaultApp in ~/.homelab/tv.json[/]");
+                return 1;
+            }
+            appToFind = config.DefaultApp;
+        }
+
         var client = new LgTvClient();
         try
         {
@@ -47,7 +60,7 @@ public class TvLaunchCommand : AsyncCommand<TvLaunchCommand.Settings>
 
                 // Try exact ID match first
                 var exactMatch = apps.FirstOrDefault(a =>
-                    a.Id.Equals(settings.App, StringComparison.OrdinalIgnoreCase));
+                    a.Id.Equals(appToFind, StringComparison.OrdinalIgnoreCase));
 
                 if (exactMatch != null)
                 {
@@ -58,8 +71,8 @@ public class TvLaunchCommand : AsyncCommand<TvLaunchCommand.Settings>
                 {
                     // Try partial name match
                     var partialMatch = apps.FirstOrDefault(a =>
-                        a.Name.Contains(settings.App, StringComparison.OrdinalIgnoreCase) ||
-                        a.Id.Contains(settings.App, StringComparison.OrdinalIgnoreCase));
+                        a.Name.Contains(appToFind, StringComparison.OrdinalIgnoreCase) ||
+                        a.Id.Contains(appToFind, StringComparison.OrdinalIgnoreCase));
 
                     if (partialMatch != null)
                     {
@@ -71,7 +84,7 @@ public class TvLaunchCommand : AsyncCommand<TvLaunchCommand.Settings>
 
             if (appIdToLaunch == null)
             {
-                AnsiConsole.MarkupLine($"[red]App '{settings.App}' not found.[/]");
+                AnsiConsole.MarkupLine($"[red]App '{appToFind}' not found.[/]");
                 AnsiConsole.MarkupLine("[dim]Use[/] [cyan]homelab tv apps[/] [dim]to see available apps.[/]");
                 return 1;
             }
