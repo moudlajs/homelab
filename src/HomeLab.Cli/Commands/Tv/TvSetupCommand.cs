@@ -17,6 +17,7 @@ public class TvSetupCommand : AsyncCommand<TvSetupCommand.Settings>
         [CommandOption("--ip <IP>")][Description("TV IP address")] public string? IpAddress { get; set; }
         [CommandOption("--mac <MAC>")][Description("TV MAC address for Wake-on-LAN")] public string? MacAddress { get; set; }
         [CommandOption("--name <NAME>")][Description("Friendly name for the TV")] public string? Name { get; set; }
+        [CommandOption("-v|--verbose")][Description("Show detailed connection debug output")] public bool Verbose { get; set; }
     }
 
     public TvSetupCommand(IWakeOnLanService wolService) => _wolService = wolService;
@@ -67,14 +68,35 @@ public class TvSetupCommand : AsyncCommand<TvSetupCommand.Settings>
         AnsiConsole.MarkupLine("[bold]Step 2:[/] Pairing with TV...");
         AnsiConsole.MarkupLine("[yellow]A pairing prompt will appear on your TV. Please accept it.[/]");
 
+        if (settings.Verbose)
+        {
+            AnsiConsole.MarkupLine("[dim]Verbose mode enabled - showing debug output[/]");
+            AnsiConsole.WriteLine();
+        }
+
         string? clientKey = null;
         var client = new LgTvClient();
+
+        // Enable verbose logging if requested
+        if (settings.Verbose)
+        {
+            client.SetVerboseLogging(msg => AnsiConsole.MarkupLine($"[dim]{msg.EscapeMarkup()}[/]"));
+        }
+
         try
         {
-            await AnsiConsole.Status().Spinner(Spinner.Known.Dots).StartAsync("Connecting (trying ports 3000 and 3001)...", async _ =>
+            if (settings.Verbose)
             {
+                // In verbose mode, don't use the spinner so we can see the logs
                 clientKey = await client.ConnectAsync(ipAddress);
-            });
+            }
+            else
+            {
+                await AnsiConsole.Status().Spinner(Spinner.Known.Dots).StartAsync("Connecting (trying ports 3000 and 3001)...", async _ =>
+                {
+                    clientKey = await client.ConnectAsync(ipAddress);
+                });
+            }
             AnsiConsole.MarkupLine("[green]Successfully paired! Client key saved.[/]");
         }
         catch (TimeoutException)
