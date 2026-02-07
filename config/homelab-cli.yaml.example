@@ -24,6 +24,9 @@ services:
     password: "admin"
     enabled: true
 
+  tailscale:
+    enabled: true
+
 remote:
   mac_mini:
     host: "192.168.1.100"  # Update with your Mac Mini IP
