@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using HomeLab.Cli.Services.Update;
@@ -13,6 +14,7 @@ namespace HomeLab.Cli.Commands;
 public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
 {
     private readonly IGitHubReleaseService _releaseService;
+    private readonly HttpClient _httpClient;
 
     public class Settings : CommandSettings
     {
@@ -29,9 +31,10 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
         public bool Force { get; set; }
     }
 
-    public SelfUpdateCommand(IGitHubReleaseService releaseService)
+    public SelfUpdateCommand(IGitHubReleaseService releaseService, HttpClient httpClient)
     {
         _releaseService = releaseService;
+        _httpClient = httpClient;
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -43,7 +46,7 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
 
         AnsiConsole.WriteLine();
 
-        // Get current version
+        // Get current version (strip git hash)
         var currentVersion = GetCurrentVersion();
         AnsiConsole.MarkupLine($"[yellow]Current version:[/] [cyan]{currentVersion}[/]\n");
 
@@ -73,7 +76,7 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
         }
 
         // Display release information
-        var releaseVersion = release.TagName.TrimStart('v');
+        var releaseVersion = GitHubReleaseService.NormalizeVersion(release.TagName);
         var versionComparison = _releaseService.CompareVersions(releaseVersion, currentVersion);
 
         AnsiConsole.MarkupLine($"[yellow]Latest version:[/] [green]{release.TagName}[/]");
@@ -95,7 +98,7 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
         if (!string.IsNullOrEmpty(release.Body))
         {
             var releaseNotes = new Panel(release.Body.Length > 500
-                ? release.Body.Substring(0, 500) + "..."
+                ? release.Body[..500] + "..."
                 : release.Body)
                 .Header($"[cyan]Release Notes - {release.TagName}[/]")
                 .BorderColor(Color.Cyan)
@@ -113,6 +116,7 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
                 AnsiConsole.MarkupLine($"[green]✓ Update available: {currentVersion} → {release.TagName}[/]");
                 AnsiConsole.MarkupLine("[dim]Run 'homelab self-update' to install[/]");
             }
+
             return 0;
         }
 
@@ -125,8 +129,9 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
 
         if (asset == null)
         {
-            AnsiConsole.MarkupLine($"[red]✗ No compatible binary found for this platform[/]");
-            AnsiConsole.MarkupLine($"[yellow]Release URL:[/] {release.HtmlUrl}");
+            AnsiConsole.MarkupLine("[red]✗ No compatible binary found for this platform[/]");
+            AnsiConsole.MarkupLine($"[yellow]Looking for:[/] {platformSuffix}");
+            AnsiConsole.MarkupLine($"[yellow]Available:[/] {string.Join(", ", release.Assets.Select(a => a.Name))}");
             return 1;
         }
 
@@ -154,16 +159,51 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
     private async Task<int> DownloadAndInstall(GitHubAsset asset, string version)
     {
         var tempPath = Path.Combine(Path.GetTempPath(), $"homelab-{version}");
-        var installPath = "/usr/local/bin/homelab";
+        var installPath = GetInstallPath();
+
+        AnsiConsole.MarkupLine($"[yellow]Install path:[/] {installPath}");
 
         try
         {
-            // Download
-            var downloadSuccess = await AnsiConsole.Status()
-                .StartAsync("Downloading update...", async ctx =>
+            // Download with progress bar
+            var downloadSuccess = false;
+
+            await AnsiConsole.Progress()
+                .AutoClear(false)
+                .Columns(
+                    new TaskDescriptionColumn(),
+                    new ProgressBarColumn(),
+                    new PercentageColumn(),
+                    new TransferSpeedColumn(),
+                    new RemainingTimeColumn())
+                .StartAsync(async ctx =>
                 {
-                    ctx.Spinner(Spinner.Known.Dots);
-                    return await _releaseService.DownloadAssetAsync(asset, tempPath);
+                    var task = ctx.AddTask($"Downloading {asset.Name}", maxValue: asset.Size);
+
+                    try
+                    {
+                        using var response = await _httpClient.GetAsync(
+                            asset.BrowserDownloadUrl,
+                            HttpCompletionOption.ResponseHeadersRead);
+                        response.EnsureSuccessStatusCode();
+
+                        await using var contentStream = await response.Content.ReadAsStreamAsync();
+                        await using var fileStream = File.Create(tempPath);
+
+                        var buffer = new byte[81920];
+                        int bytesRead;
+                        while ((bytesRead = await contentStream.ReadAsync(buffer)) > 0)
+                        {
+                            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                            task.Increment(bytesRead);
+                        }
+
+                        downloadSuccess = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        AnsiConsole.MarkupLine($"[red]Download error: {ex.Message}[/]");
+                    }
                 });
 
             if (!downloadSuccess)
@@ -174,49 +214,44 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
 
             AnsiConsole.MarkupLine("[green]✓ Download complete[/]");
 
-            // Make executable
+            // Make executable and install
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                 RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                var chmodProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "chmod",
-                    Arguments = $"+x {tempPath}",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                });
+                await RunProcessAsync("chmod", $"+x \"{tempPath}\"");
+            }
 
-                if (chmodProcess != null)
+            // Install: copy to target location
+            var needsSudo = installPath.StartsWith("/usr/local/") || installPath.StartsWith("/usr/bin/");
+
+            if (needsSudo)
+            {
+                AnsiConsole.MarkupLine("[yellow]Installing (requires sudo)...[/]");
+                var result = await RunProcessAsync("sudo", $"cp \"{tempPath}\" \"{installPath}\"");
+                if (result != 0)
                 {
-                    await chmodProcess.WaitForExitAsync();
+                    AnsiConsole.MarkupLine("[red]✗ Installation failed[/]");
+                    AnsiConsole.MarkupLine($"[yellow]Manual install:[/] [dim]sudo cp \"{tempPath}\" \"{installPath}\"[/]");
+                    return 1;
                 }
             }
-
-            // Replace binary (requires sudo)
-            AnsiConsole.MarkupLine("\n[yellow]Installing update (requires sudo)...[/]");
-
-            var cpProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            else
             {
-                FileName = "sudo",
-                Arguments = $"cp {tempPath} {installPath}",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            });
+                // Direct copy — no sudo needed for ~/.local/bin
+                var dir = Path.GetDirectoryName(installPath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
 
-            if (cpProcess == null)
-            {
-                AnsiConsole.MarkupLine("[red]✗ Failed to start installation process[/]");
-                return 1;
+                File.Copy(tempPath, installPath, overwrite: true);
             }
 
-            await cpProcess.WaitForExitAsync();
-
-            if (cpProcess.ExitCode != 0)
+            // macOS: clear quarantine and ad-hoc sign
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                AnsiConsole.MarkupLine("[red]✗ Installation failed[/]");
-                AnsiConsole.MarkupLine("[yellow]You may need to manually copy the binary:[/]");
-                AnsiConsole.MarkupLine($"[dim]sudo cp {tempPath} {installPath}[/]");
-                return 1;
+                await RunProcessAsync("xattr", $"-cr \"{installPath}\"");
+                await RunProcessAsync("codesign", $"-f -s - \"{installPath}\"");
             }
 
             // Clean up temp file
@@ -229,8 +264,8 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
                 // Ignore cleanup errors
             }
 
-            AnsiConsole.MarkupLine($"[green]✓ Successfully updated to version {version}![/]");
-            AnsiConsole.MarkupLine("\n[dim]Run 'homelab version' to verify the installation[/]");
+            AnsiConsole.MarkupLine($"\n[green]✓ Successfully updated to version {version}![/]");
+            AnsiConsole.MarkupLine("[dim]Run 'homelab version' to verify the installation[/]");
 
             return 0;
         }
@@ -241,19 +276,39 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
         }
     }
 
-    private string GetCurrentVersion()
+    /// <summary>
+    /// Detects where the current binary is installed.
+    /// Falls back to ~/.local/bin/homelab.
+    /// </summary>
+    private static string GetInstallPath()
+    {
+        // Try to detect current binary location
+        var currentPath = Process.GetCurrentProcess().MainModule?.FileName;
+
+        if (!string.IsNullOrEmpty(currentPath) &&
+            !currentPath.Contains("dotnet") &&
+            File.Exists(currentPath))
+        {
+            return currentPath;
+        }
+
+        // Default to ~/.local/bin/homelab
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return Path.Combine(home, ".local", "bin", "homelab");
+    }
+
+    private static string GetCurrentVersion()
     {
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion ?? "Unknown";
 
-        return version.TrimStart('v');
+        return GitHubReleaseService.NormalizeVersion(version);
     }
 
-    private string GetPlatformSuffix()
+    private static string GetPlatformSuffix()
     {
-        // Determine platform-specific binary suffix
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             return RuntimeInformation.ProcessArchitecture switch
@@ -282,19 +337,46 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
             };
         }
 
-        return "macos-arm64"; // Default fallback
+        return "macos-arm64";
     }
 
-    private string FormatBytes(long bytes)
+    private static async Task<int> RunProcessAsync(string fileName, string arguments)
     {
-        string[] sizes = { "B", "KB", "MB", "GB" };
+        try
+        {
+            var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = arguments,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+
+            if (process == null)
+            {
+                return -1;
+            }
+
+            await process.WaitForExitAsync();
+            return process.ExitCode;
+        }
+        catch
+        {
+            return -1;
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] sizes = ["B", "KB", "MB", "GB"];
         double len = bytes;
-        int order = 0;
+        var order = 0;
         while (len >= 1024 && order < sizes.Length - 1)
         {
             order++;
-            len = len / 1024;
+            len /= 1024;
         }
+
         return $"{len:0.##} {sizes[order]}";
     }
 }

@@ -25,13 +25,6 @@ public class GitHubReleaseService : IGitHubReleaseService
         {
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "HomeLab-CLI");
         }
-
-        // Add authorization header if token is configured (required for private repos)
-        var token = _configService.GetGitHubToken();
-        if (!string.IsNullOrEmpty(token) && !_httpClient.DefaultRequestHeaders.Contains("Authorization"))
-        {
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"token {token}");
-        }
     }
 
     public async Task<GitHubRelease?> GetLatestReleaseAsync()
@@ -90,17 +83,29 @@ public class GitHubReleaseService : IGitHubReleaseService
 
     public int CompareVersions(string v1, string v2)
     {
-        // Remove 'v' prefix if present
-        v1 = v1.TrimStart('v');
-        v2 = v2.TrimStart('v');
+        v1 = NormalizeVersion(v1);
+        v2 = NormalizeVersion(v2);
 
-        // Try to parse as Version objects
         if (Version.TryParse(v1, out var version1) && Version.TryParse(v2, out var version2))
         {
             return version1.CompareTo(version2);
         }
 
-        // Fall back to string comparison
         return string.Compare(v1, v2, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Strips 'v' prefix and git hash suffix (e.g. "v1.8.0+abc123" → "1.8.0").
+    /// </summary>
+    public static string NormalizeVersion(string version)
+    {
+        version = version.TrimStart('v');
+        var plusIndex = version.IndexOf('+');
+        if (plusIndex >= 0)
+        {
+            version = version[..plusIndex];
+        }
+
+        return version;
     }
 }
