@@ -9,6 +9,11 @@ namespace HomeLab.Cli.Services.Docker;
 public interface IDockerService
 {
     /// <summary>
+    /// Checks if Docker daemon is reachable.
+    /// </summary>
+    Task<bool> IsDockerAvailableAsync();
+
+    /// <summary>
     /// Lists all containers, optionally filtered to homelab namespace.
     /// </summary>
     Task<List<ContainerInfo>> ListContainersAsync(bool onlyHomelab = true);

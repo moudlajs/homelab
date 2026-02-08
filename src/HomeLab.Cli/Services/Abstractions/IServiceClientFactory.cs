@@ -54,4 +54,9 @@ public interface IServiceClientFactory
     /// Creates a Suricata client for intrusion detection.
     /// </summary>
     ISuricataClient CreateSuricataClient();
+
+    /// <summary>
+    /// Creates a Tailscale client.
+    /// </summary>
+    ITailscaleClient CreateTailscaleClient();
 }
