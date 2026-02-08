@@ -5,7 +5,28 @@ All notable changes to the HomeLab CLI project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.9.0] - 2026-02-08
+## [1.11.0] - 2026-02-08
+
+### Added - Interactive Shell, Tailscale & Self-Update Overhaul
+
+#### Interactive Shell
+- **Shell mode**: `homelab shell` or just `homelab` — REPL with tab completion and command history
+- Tab completion for all commands, subcommands, and aliases
+- ReadLine-based input with history persistence
+
+#### Tailscale VPN Integration
+- **`homelab tailscale status`** — Display Tailscale connection status
+- **`homelab tailscale up`** — Connect to Tailscale tailnet
+- **`homelab tailscale down`** — Disconnect from Tailscale tailnet
+- **`homelab tailscale devices`** — List all devices on the tailnet
+
+#### Graceful Docker Handling
+- `homelab status` and `homelab tui` detect when Docker is unavailable
+- Shows friendly message instead of connection error spam
+- Non-Docker commands (tv, tailscale, network) work regardless
+
+#### TV Fix
+- `homelab tv launch default` now works correctly
 
 ### Fixed - Self-Update Reliability
 
