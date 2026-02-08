@@ -160,6 +160,7 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
     {
         var tempPath = Path.Combine(Path.GetTempPath(), $"homelab-{version}");
         var installPath = GetInstallPath();
+        var backupPath = installPath + ".bak";
 
         AnsiConsole.MarkupLine($"[yellow]Install path:[/] {installPath}");
 
@@ -208,17 +209,44 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
 
             if (!downloadSuccess)
             {
+                CleanupFile(tempPath);
                 AnsiConsole.MarkupLine("[red]✗ Failed to download binary[/]");
                 return 1;
             }
 
-            AnsiConsole.MarkupLine("[green]✓ Download complete[/]");
+            // Verify download is not empty/corrupt
+            var downloadedSize = new FileInfo(tempPath).Length;
+            if (downloadedSize < 1024)
+            {
+                CleanupFile(tempPath);
+                AnsiConsole.MarkupLine("[red]✗ Downloaded file is too small — likely corrupt[/]");
+                return 1;
+            }
 
-            // Make executable and install
+            AnsiConsole.MarkupLine($"[green]✓ Download complete[/] [dim]({FormatBytes(downloadedSize)})[/]");
+
+            // Make executable
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                 RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 await RunProcessAsync("chmod", $"+x \"{tempPath}\"");
+            }
+
+            // Backup current binary before overwriting
+            var hasBackup = false;
+            if (File.Exists(installPath))
+            {
+                try
+                {
+                    File.Copy(installPath, backupPath, overwrite: true);
+                    hasBackup = true;
+                    AnsiConsole.MarkupLine("[dim]Backed up current binary[/]");
+                }
+                catch (Exception ex)
+                {
+                    AnsiConsole.MarkupLine($"[yellow]⚠ Could not create backup: {ex.Message}[/]");
+                    AnsiConsole.MarkupLine("[dim]Continuing without rollback safety net[/]");
+                }
             }
 
             // Install: copy to target location
@@ -237,7 +265,6 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
             }
             else
             {
-                // Direct copy — no sudo needed for ~/.local/bin
                 var dir = Path.GetDirectoryName(installPath);
                 if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                 {
@@ -250,29 +277,107 @@ public class SelfUpdateCommand : AsyncCommand<SelfUpdateCommand.Settings>
             // macOS: clear quarantine and ad-hoc sign
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                await RunProcessAsync("xattr", $"-cr \"{installPath}\"");
-                await RunProcessAsync("codesign", $"-f -s - \"{installPath}\"");
+                var xattrResult = await RunProcessAsync("xattr", $"-cr \"{installPath}\"");
+                var codesignResult = await RunProcessAsync("codesign", $"-f -s - \"{installPath}\"");
+
+                if (codesignResult != 0)
+                {
+                    AnsiConsole.MarkupLine("[red]✗ Code signing failed — binary may be killed by macOS[/]");
+                    if (hasBackup)
+                    {
+                        await Rollback(installPath, backupPath, needsSudo);
+                        return 1;
+                    }
+                }
             }
 
-            // Clean up temp file
-            try
+            // Verify the new binary actually runs
+            AnsiConsole.MarkupLine("[dim]Verifying new binary...[/]");
+            var verifyResult = await RunProcessAsync(installPath, "version");
+            if (verifyResult != 0)
             {
-                File.Delete(tempPath);
+                AnsiConsole.MarkupLine("[red]✗ New binary failed verification[/]");
+                if (hasBackup)
+                {
+                    await Rollback(installPath, backupPath, needsSudo);
+                    return 1;
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine("[red]✗ No backup available — manual reinstall required[/]");
+                    AnsiConsole.MarkupLine($"[yellow]Temp file kept at:[/] [dim]{tempPath}[/]");
+                    return 1;
+                }
             }
-            catch
-            {
-                // Ignore cleanup errors
-            }
+
+            AnsiConsole.MarkupLine("[green]✓ Verification passed[/]");
+
+            // Clean up temp and backup files
+            CleanupFile(tempPath);
+            CleanupFile(backupPath);
 
             AnsiConsole.MarkupLine($"\n[green]✓ Successfully updated to version {version}![/]");
-            AnsiConsole.MarkupLine("[dim]Run 'homelab version' to verify the installation[/]");
 
             return 0;
         }
         catch (Exception ex)
         {
             AnsiConsole.MarkupLine($"[red]✗ Update failed: {ex.Message}[/]");
+
+            // Attempt rollback on unexpected failure
+            if (File.Exists(backupPath))
+            {
+                await Rollback(installPath, backupPath, false);
+            }
+
+            CleanupFile(tempPath);
             return 1;
+        }
+    }
+
+    private static async Task Rollback(string installPath, string backupPath, bool needsSudo)
+    {
+        AnsiConsole.MarkupLine("[yellow]Rolling back to previous version...[/]");
+        try
+        {
+            if (needsSudo)
+            {
+                await RunProcessAsync("sudo", $"cp \"{backupPath}\" \"{installPath}\"");
+            }
+            else
+            {
+                File.Copy(backupPath, installPath, overwrite: true);
+            }
+
+            // Re-sign the restored binary on macOS
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                await RunProcessAsync("xattr", $"-cr \"{installPath}\"");
+                await RunProcessAsync("codesign", $"-f -s - \"{installPath}\"");
+            }
+
+            AnsiConsole.MarkupLine("[green]✓ Rolled back to previous version[/]");
+            CleanupFile(backupPath);
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]✗ Rollback failed: {ex.Message}[/]");
+            AnsiConsole.MarkupLine($"[yellow]Backup kept at:[/] [dim]{backupPath}[/]");
+        }
+    }
+
+    private static void CleanupFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Ignore cleanup errors
         }
     }
 
