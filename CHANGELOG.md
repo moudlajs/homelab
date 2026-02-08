@@ -5,6 +5,34 @@ All notable changes to the HomeLab CLI project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-02-08
+
+### Fixed - Self-Update Reliability
+
+#### Crash-Safe Self-Update
+- **Backup before overwrite**: Current binary backed up to `.bak` before installing
+- **Download validation**: Rejects corrupt downloads (files < 1KB)
+- **Post-install verification**: Runs `homelab version` to confirm new binary works
+- **Automatic rollback**: Restores backup if code signing or verification fails
+- **macOS signing**: Clears quarantine (`xattr -cr`) and ad-hoc signs (`codesign -f -s -`) — fixes `zsh: killed`
+
+#### Smart Install Path
+- Auto-detects binary location from running process
+- Falls back to `~/.local/bin/homelab`
+- No unnecessary `sudo` for user-owned paths
+
+#### Version Parsing Fix
+- Strips git hash suffix from `AssemblyInformationalVersion` (e.g., `1.0.0+abc123` → `1.0.0`)
+- `Version.TryParse` now works correctly for version comparison
+
+#### Download Progress
+- Progress bar with percentage, transfer speed, and ETA (replaces spinner)
+
+#### Documentation
+- Added `docs/SELF_UPDATE.md` — usage, crash safety, manual recovery
+
+---
+
 ## [1.8.0] - 2025-12-28
 
 ### Added - Shell Completion Support

@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
+using HomeLab.Cli.Services.Update;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -18,9 +19,10 @@ public class VersionCommand : Command<VersionCommand.Settings>
     {
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly.GetName().Version;
-        var informationalVersion = assembly
+        var rawVersion = assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion ?? version?.ToString() ?? "Unknown";
+        var informationalVersion = GitHubReleaseService.NormalizeVersion(rawVersion);
 
         var productName = assembly
             .GetCustomAttribute<AssemblyProductAttribute>()?
