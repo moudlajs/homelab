@@ -12,6 +12,7 @@ using HomeLab.Cli.Commands.Tv;
 using HomeLab.Cli.Commands.Uptime;
 using HomeLab.Cli.Commands.Vpn;
 using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.AI;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Health;
@@ -70,6 +71,10 @@ public static class Program
 
         // Phase 10: Self-update service
         services.AddSingleton<IGitHubReleaseService, GitHubReleaseService>();
+
+        // AI monitoring services
+        services.AddSingleton<ILlmService, AnthropicLlmService>();
+        services.AddSingleton<ISystemDataCollector, SystemDataCollector>();
 
         // Network monitoring services
         services.AddSingleton<INmapService, NmapService>();
@@ -174,6 +179,11 @@ public static class Program
                 .WithAlias("dash")
                 .WithAlias("db")
                 .WithDescription("Open Grafana dashboards");
+            monitor.AddCommand<MonitorReportCommand>("report")
+                .WithAlias("ai")
+                .WithDescription("AI-powered homelab health summary");
+            monitor.AddCommand<MonitorAskCommand>("ask")
+                .WithDescription("Ask AI about your homelab");
         });
 
         // Phase 5 - Day 6: Remote Management

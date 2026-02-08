@@ -74,6 +74,8 @@ public class ServiceConfig
     public string? Token { get; set; }
     public string? ConfigPath { get; set; }
     public string? LogPath { get; set; }
+    public string? Provider { get; set; }
+    public string? Model { get; set; }
     public bool Enabled { get; set; } = true;
 }
 
