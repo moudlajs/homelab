@@ -34,6 +34,8 @@ public class AnthropicLlmService : ILlmService
         return Task.FromResult(!string.IsNullOrWhiteSpace(_apiKey));
     }
 
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
+
     public async Task<LlmResponse> SendMessageAsync(string systemPrompt, string userMessage, int maxTokens = 1024)
     {
         if (string.IsNullOrWhiteSpace(_apiKey))
@@ -59,7 +61,7 @@ public class AnthropicLlmService : ILlmService
             };
 
             var json = JsonSerializer.Serialize(request);
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, ApiUrl)
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, ApiUrl)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
@@ -68,11 +70,12 @@ public class AnthropicLlmService : ILlmService
             httpRequest.Headers.Add("x-api-key", _apiKey);
             httpRequest.Headers.Add("anthropic-version", ApiVersion);
 
-            var response = await _httpClient.SendAsync(httpRequest);
+            using var cts = new CancellationTokenSource(RequestTimeout);
+            var response = await _httpClient.SendAsync(httpRequest, cts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorBody = await response.Content.ReadAsStringAsync();
+                var errorBody = await response.Content.ReadAsStringAsync(cts.Token);
                 return new LlmResponse
                 {
                     Success = false,
@@ -80,7 +83,7 @@ public class AnthropicLlmService : ILlmService
                 };
             }
 
-            var responseBody = await response.Content.ReadAsStringAsync();
+            var responseBody = await response.Content.ReadAsStringAsync(cts.Token);
             var anthropicResponse = JsonSerializer.Deserialize<AnthropicResponse>(responseBody);
 
             if (anthropicResponse?.Content == null || anthropicResponse.Content.Count == 0)
@@ -99,6 +102,14 @@ public class AnthropicLlmService : ILlmService
                 InputTokens = anthropicResponse.Usage?.InputTokens ?? 0,
                 OutputTokens = anthropicResponse.Usage?.OutputTokens ?? 0,
                 Model = anthropicResponse.Model ?? _model
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            return new LlmResponse
+            {
+                Success = false,
+                Error = "Request timed out after 30 seconds"
             };
         }
         catch (Exception ex)

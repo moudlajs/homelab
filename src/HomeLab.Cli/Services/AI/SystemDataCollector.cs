@@ -313,11 +313,13 @@ public class SystemDataCollector : ISystemDataCollector
         return metrics;
     }
 
+    private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(10);
+
     private static async Task<string> RunCommandAsync(string fileName, string arguments)
     {
         try
         {
-            var process = new Process
+            using var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
@@ -330,8 +332,10 @@ public class SystemDataCollector : ISystemDataCollector
             };
 
             process.Start();
-            var output = await process.StandardOutput.ReadToEndAsync();
-            await process.WaitForExitAsync();
+
+            using var cts = new CancellationTokenSource(CommandTimeout);
+            var output = await process.StandardOutput.ReadToEndAsync(cts.Token);
+            await process.WaitForExitAsync(cts.Token);
             return output;
         }
         catch
