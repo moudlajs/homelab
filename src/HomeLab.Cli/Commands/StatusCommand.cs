@@ -109,6 +109,15 @@ public class StatusCommand : AsyncCommand<StatusCommand.Settings>
 
         AnsiConsole.WriteLine();
 
+        // Check if Docker is available
+        if (!await _dockerService.IsDockerAvailableAsync())
+        {
+            AnsiConsole.MarkupLine("[yellow]Docker is not available on this machine.[/]");
+            AnsiConsole.MarkupLine("[dim]Install Docker or check that the Docker daemon is running.[/]");
+            AnsiConsole.MarkupLine("[dim]Commands that don't need Docker (tv, tailscale, network) still work.[/]");
+            return 0;
+        }
+
         // Perform health checks on all services
         await AnsiConsole.Status()
             .StartAsync("Checking service health...", async ctx =>

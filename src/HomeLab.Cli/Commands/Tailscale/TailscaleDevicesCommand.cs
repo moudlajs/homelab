@@ -137,9 +137,21 @@ public class TailscaleDevicesCommand : AsyncCommand<TailscaleDevicesCommand.Sett
     private static string FormatTimeAgo(DateTime dateTime)
     {
         var timeAgo = DateTime.UtcNow - dateTime;
-        if (timeAgo.TotalMinutes < 1) return "Just now";
-        if (timeAgo.TotalMinutes < 60) return $"{(int)timeAgo.TotalMinutes}m ago";
-        if (timeAgo.TotalHours < 24) return $"{(int)timeAgo.TotalHours}h ago";
+        if (timeAgo.TotalMinutes < 1)
+        {
+            return "Just now";
+        }
+
+        if (timeAgo.TotalMinutes < 60)
+        {
+            return $"{(int)timeAgo.TotalMinutes}m ago";
+        }
+
+        if (timeAgo.TotalHours < 24)
+        {
+            return $"{(int)timeAgo.TotalHours}h ago";
+        }
+
         return $"{(int)timeAgo.TotalDays}d ago";
     }
 }

@@ -38,6 +38,15 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
+        // Check if Docker is available
+        if (!await _dockerService.IsDockerAvailableAsync())
+        {
+            AnsiConsole.MarkupLine("[yellow]Docker is not available on this machine.[/]");
+            AnsiConsole.MarkupLine("[dim]The TUI dashboard requires Docker to display service status.[/]");
+            AnsiConsole.MarkupLine("[dim]Install Docker or check that the Docker daemon is running.[/]");
+            return 0;
+        }
+
         // Set up Ctrl+C handler
         Console.CancelKeyPress += (sender, e) =>
         {

@@ -22,6 +22,19 @@ public class DockerService : IDockerService
             .CreateClient();
     }
 
+    public async Task<bool> IsDockerAvailableAsync()
+    {
+        try
+        {
+            await _client.System.PingAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<List<ContainerInfo>> ListContainersAsync(bool onlyHomelab = true)
     {
         // Call Docker API to list containers
