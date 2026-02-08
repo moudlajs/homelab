@@ -63,5 +63,9 @@ data/
 # Temporary files (phase notes, work-in-progress docs)
 .temp/
 
+# Publish output
+publish/
+publish-single/
+
 # Application specific
 config/homelab-cli.yaml
