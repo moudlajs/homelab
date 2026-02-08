@@ -6,6 +6,7 @@ using HomeLab.Cli.Commands.Network;
 using HomeLab.Cli.Commands.Quick;
 using HomeLab.Cli.Commands.Remote;
 using HomeLab.Cli.Commands.Speedtest;
+using HomeLab.Cli.Commands.Tailscale;
 using HomeLab.Cli.Commands.Traefik;
 using HomeLab.Cli.Commands.Tv;
 using HomeLab.Cli.Commands.Uptime;
@@ -293,6 +294,22 @@ public static class Program
                 .WithDescription("Send remote control key to TV");
             tv.AddCommand<TvDebugCommand>("debug")
                 .WithDescription("Debug TV connection and app detection");
+        });
+
+        // Tailscale VPN
+        config.AddBranch("tailscale", tailscale =>
+        {
+            tailscale.SetDescription("Manage Tailscale VPN connection");
+            tailscale.AddCommand<TailscaleStatusCommand>("status")
+                .WithAlias("st")
+                .WithDescription("Display Tailscale connection status");
+            tailscale.AddCommand<TailscaleUpCommand>("up")
+                .WithDescription("Connect to Tailscale tailnet");
+            tailscale.AddCommand<TailscaleDownCommand>("down")
+                .WithDescription("Disconnect from Tailscale tailnet");
+            tailscale.AddCommand<TailscaleDevicesCommand>("devices")
+                .WithAlias("ls")
+                .WithDescription("List all devices on the tailnet");
         });
 
         // Phase 7: Quick Actions - Fast operations for daily use

@@ -8,6 +8,7 @@ using HomeLab.Cli.Services.Ntopng;
 using HomeLab.Cli.Services.Prometheus;
 using HomeLab.Cli.Services.Speedtest;
 using HomeLab.Cli.Services.Suricata;
+using HomeLab.Cli.Services.Tailscale;
 using HomeLab.Cli.Services.Traefik;
 using HomeLab.Cli.Services.UptimeKuma;
 using HomeLab.Cli.Services.WireGuard;
@@ -121,5 +122,10 @@ public class ServiceClientFactory : IServiceClientFactory
         }
 
         return new SuricataClient(_configService);
+    }
+
+    public ITailscaleClient CreateTailscaleClient()
+    {
+        return new TailscaleClient();
     }
 }
