@@ -9,7 +9,7 @@ The AI monitoring collects real-time data from your homelab and sends it to Clau
 
 ## Where Data Comes From
 
-The `SystemDataCollector` gathers data from **3 sources** in parallel:
+The `SystemDataCollector` gathers data from **4 sources** in parallel:
 
 ### 1. System Metrics (always available)
 
@@ -49,6 +49,25 @@ Collected via HTTP API using the existing `IPrometheusClient`.
 
 **If Prometheus is not available**: Skipped gracefully, noted in report.
 
+### 4. Network Metrics (nmap required, ntopng/Suricata optional)
+
+Collected via nmap for device discovery, ntopng for traffic analysis, and Suricata for intrusion detection.
+
+| Metric | Source | Requirement |
+|--------|--------|-------------|
+| Device discovery | `nmap -sn 192.168.1.0/24` (ping scan) | `brew install nmap` |
+| IP/MAC/hostname/vendor | nmap XML output parsing | nmap |
+| Open ports | nmap port scan | nmap |
+| Traffic stats | ntopng REST API | ntopng container running |
+| Top talkers | ntopng REST API | ntopng container running |
+| Active flows | ntopng REST API | ntopng container running |
+| Security alerts | Suricata IDS | Suricata container running |
+| Alert severity | Suricata alert metadata | Suricata container running |
+
+**If nmap is not installed**: Device scanning skipped, noted in report.
+**If ntopng is not running**: Traffic analysis skipped silently.
+**If Suricata is not running**: Intrusion detection skipped silently.
+
 ## How the AI Works
 
 ```
@@ -56,7 +75,7 @@ User runs command
        │
        ▼
 ┌──────────────┐
-│  Collect     │  System + Docker + Prometheus
+│  Collect     │  System + Docker + Prometheus + Network
 │  Data        │  (parallel, 10s timeout each)
 └──────┬───────┘
        │

@@ -5,21 +5,24 @@ using System.Text.RegularExpressions;
 using HomeLab.Cli.Models.AI;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Docker;
+using HomeLab.Cli.Services.Network;
 
 namespace HomeLab.Cli.Services.AI;
 
 /// <summary>
-/// Collects system, Docker, and Prometheus metrics into a structured snapshot.
+/// Collects system, Docker, Prometheus, and network metrics into a structured snapshot.
 /// </summary>
 public class SystemDataCollector : ISystemDataCollector
 {
     private readonly IDockerService _dockerService;
     private readonly IServiceClientFactory _clientFactory;
+    private readonly INmapService _nmapService;
 
-    public SystemDataCollector(IDockerService dockerService, IServiceClientFactory clientFactory)
+    public SystemDataCollector(IDockerService dockerService, IServiceClientFactory clientFactory, INmapService nmapService)
     {
         _dockerService = dockerService;
         _clientFactory = clientFactory;
+        _nmapService = nmapService;
     }
 
     public async Task<HomelabDataSnapshot> CollectAsync()
@@ -30,12 +33,14 @@ public class SystemDataCollector : ISystemDataCollector
         var systemTask = CollectSystemMetricsAsync(snapshot.Errors);
         var dockerTask = CollectDockerMetricsAsync(snapshot.Errors);
         var prometheusTask = CollectPrometheusMetricsAsync(snapshot.Errors);
+        var networkTask = CollectNetworkMetricsAsync(snapshot.Errors);
 
-        await Task.WhenAll(systemTask, dockerTask, prometheusTask);
+        await Task.WhenAll(systemTask, dockerTask, prometheusTask, networkTask);
 
         snapshot.System = await systemTask;
         snapshot.Docker = await dockerTask;
         snapshot.Prometheus = await prometheusTask;
+        snapshot.Network = await networkTask;
 
         return snapshot;
     }
@@ -116,6 +121,65 @@ public class SystemDataCollector : ISystemDataCollector
             {
                 sb.AppendLine("--- PROMETHEUS ---");
                 sb.AppendLine("Not available");
+            }
+
+            sb.AppendLine();
+        }
+
+        // Network metrics
+        if (snapshot.Network != null)
+        {
+            sb.AppendLine("--- NETWORK ---");
+
+            if (snapshot.Network.NmapAvailable && snapshot.Network.Devices.Count > 0)
+            {
+                sb.AppendLine($"Devices on network: {snapshot.Network.DevicesFound}");
+                foreach (var device in snapshot.Network.Devices)
+                {
+                    var info = device.Ip;
+                    if (!string.IsNullOrEmpty(device.Hostname))
+                    {
+                        info += $" ({device.Hostname})";
+                    }
+
+                    if (!string.IsNullOrEmpty(device.Vendor))
+                    {
+                        info += $" - {device.Vendor}";
+                    }
+
+                    if (device.OpenPorts.Count > 0)
+                    {
+                        info += $" [ports: {string.Join(",", device.OpenPorts)}]";
+                    }
+
+                    sb.AppendLine($"  - {info}");
+                }
+            }
+            else if (!snapshot.Network.NmapAvailable)
+            {
+                sb.AppendLine("Device scanning: nmap not available");
+            }
+
+            if (snapshot.Network.NtopngAvailable)
+            {
+                sb.AppendLine($"Traffic: {FormatBytes(snapshot.Network.TotalBytesTransferred)} total, {snapshot.Network.ActiveFlows} active flows");
+                if (snapshot.Network.TopTalkers.Count > 0)
+                {
+                    sb.AppendLine($"Top talkers: {string.Join(", ", snapshot.Network.TopTalkers)}");
+                }
+            }
+
+            if (snapshot.Network.SuricataAvailable)
+            {
+                sb.AppendLine($"Security alerts: {snapshot.Network.SecurityAlerts} total ({snapshot.Network.CriticalAlerts} critical, {snapshot.Network.HighAlerts} high)");
+                foreach (var alert in snapshot.Network.AlertSummaries.Take(10))
+                {
+                    sb.AppendLine($"  - {alert}");
+                }
+            }
+            else
+            {
+                sb.AppendLine("Intrusion detection: Suricata not available");
             }
 
             sb.AppendLine();
@@ -311,6 +375,99 @@ public class SystemDataCollector : ISystemDataCollector
         }
 
         return metrics;
+    }
+
+    private async Task<NetworkMetrics> CollectNetworkMetricsAsync(List<string> errors)
+    {
+        var metrics = new NetworkMetrics();
+
+        // Nmap quick scan (ping only — fast, ~5 seconds)
+        try
+        {
+            if (_nmapService.IsNmapAvailable())
+            {
+                metrics.NmapAvailable = true;
+                var devices = await _nmapService.ScanNetworkAsync("192.168.1.0/24", quickScan: true);
+                metrics.DevicesFound = devices.Count;
+                metrics.Devices = devices.Select(d => new DiscoveredDevice
+                {
+                    Ip = d.IpAddress,
+                    Mac = d.MacAddress ?? string.Empty,
+                    Hostname = d.Hostname ?? string.Empty,
+                    Vendor = d.Vendor ?? string.Empty,
+                    OpenPorts = d.OpenPorts
+                }).ToList();
+            }
+            else
+            {
+                metrics.NmapAvailable = false;
+                errors.Add("nmap not installed — install with: brew install nmap");
+            }
+        }
+        catch (Exception ex)
+        {
+            metrics.NmapAvailable = false;
+            errors.Add($"Network scan failed: {ex.Message}");
+        }
+
+        // Ntopng traffic data (when container is running)
+        try
+        {
+            var ntopng = _clientFactory.CreateNtopngClient();
+            if (await ntopng.IsHealthyAsync())
+            {
+                metrics.NtopngAvailable = true;
+                var stats = await ntopng.GetTrafficStatsAsync();
+                metrics.TotalBytesTransferred = stats.TotalBytesTransferred;
+                metrics.ActiveFlows = stats.ActiveFlows;
+                metrics.TopTalkers = stats.TopTalkers
+                    .Take(5)
+                    .Select(t => $"{t.DeviceName ?? t.IpAddress} ({FormatBytes(t.TotalBytes)})")
+                    .ToList();
+            }
+        }
+        catch
+        {
+            metrics.NtopngAvailable = false;
+        }
+
+        // Suricata IDS alerts (when container is running)
+        try
+        {
+            var suricata = _clientFactory.CreateSuricataClient();
+            if (await suricata.IsHealthyAsync())
+            {
+                metrics.SuricataAvailable = true;
+                var alerts = await suricata.GetAlertsAsync(limit: 20);
+                metrics.SecurityAlerts = alerts.Count;
+                metrics.CriticalAlerts = alerts.Count(a => a.Severity == "critical");
+                metrics.HighAlerts = alerts.Count(a => a.Severity == "high");
+                metrics.AlertSummaries = alerts
+                    .Take(10)
+                    .Select(a => $"[{a.Severity.ToUpperInvariant()}] {a.Signature} ({a.SourceIp} → {a.DestinationIp})")
+                    .ToList();
+            }
+        }
+        catch
+        {
+            metrics.SuricataAvailable = false;
+        }
+
+        return metrics;
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] sizes = ["B", "KB", "MB", "GB", "TB"];
+        double len = bytes;
+        var order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len /= 1024;
+        }
+
+        return $"{len:0.#} {sizes[order]}";
     }
 
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(10);

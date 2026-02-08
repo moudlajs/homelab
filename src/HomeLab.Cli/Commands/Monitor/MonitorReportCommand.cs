@@ -167,6 +167,41 @@ public class MonitorReportCommand : AsyncCommand<MonitorReportCommand.Settings>
             AnsiConsole.WriteLine();
         }
 
+        // Network
+        if (snapshot.Network != null)
+        {
+            if (snapshot.Network.NmapAvailable && snapshot.Network.Devices.Count > 0)
+            {
+                var netTable = new Table().Border(TableBorder.Rounded).BorderColor(Color.Purple);
+                netTable.AddColumn("[yellow]IP[/]");
+                netTable.AddColumn("[yellow]Hostname[/]");
+                netTable.AddColumn("[yellow]Vendor[/]");
+
+                foreach (var d in snapshot.Network.Devices)
+                {
+                    netTable.AddRow(
+                        Markup.Escape(d.Ip),
+                        Markup.Escape(d.Hostname),
+                        Markup.Escape(d.Vendor));
+                }
+
+                AnsiConsole.Write(new Panel(netTable)
+                    .Header($"[purple]Network ({snapshot.Network.DevicesFound} devices)[/]")
+                    .BorderColor(Color.Purple).RoundedBorder());
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[dim]Network scan: not available[/]");
+            }
+
+            if (snapshot.Network.SuricataAvailable && snapshot.Network.SecurityAlerts > 0)
+            {
+                AnsiConsole.MarkupLine($"[red]Security alerts: {snapshot.Network.SecurityAlerts} ({snapshot.Network.CriticalAlerts} critical)[/]");
+            }
+
+            AnsiConsole.WriteLine();
+        }
+
         // Errors
         if (snapshot.Errors.Count > 0)
         {
