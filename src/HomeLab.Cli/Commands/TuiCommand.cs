@@ -156,18 +156,11 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
             .BorderColor(Color.Cyan)
             .Padding(1, 0);
 
-        // Uptime monitoring panel
-        var uptimeInfo = await GetUptimeInfo();
-        var uptimePanel = new Panel(uptimeInfo)
-            .Header("[green]⏱️ Uptime[/]")
+        // Docker containers panel
+        var containerInfo = await GetContainerInfo();
+        var containerPanel = new Panel(containerInfo)
+            .Header("[green]Containers[/]")
             .BorderColor(Color.Green)
-            .Padding(1, 0);
-
-        // Speedtest panel
-        var speedInfo = await GetSpeedtestInfo();
-        var speedPanel = new Panel(speedInfo)
-            .Header("[cyan]🚀 Speed[/]")
-            .BorderColor(Color.Cyan1)
             .Padding(1, 0);
 
         // Footer
@@ -189,8 +182,7 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
                     ),
                     new Layout("Right").Size(45).SplitRows(
                         new Layout("System").Update(systemPanel),
-                        new Layout("Uptime").Size(8).Update(uptimePanel),
-                        new Layout("Speed").Size(7).Update(speedPanel)
+                        new Layout("Containers").Size(10).Update(containerPanel)
                     )
                 ),
                 new Layout("Footer").Size(3).Update(footer)
@@ -243,70 +235,34 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
         return $"{len:0.##} {sizes[order]}";
     }
 
-    private async Task<Markup> GetUptimeInfo()
+    private async Task<Markup> GetContainerInfo()
     {
         try
         {
-            var client = _clientFactory.CreateUptimeKumaClient();
-            var monitors = await client.GetMonitorsAsync();
+            var containers = await _dockerService.ListContainersAsync(onlyHomelab: false);
 
-            if (monitors.Count == 0)
+            if (containers.Count == 0)
             {
-                return new Markup("[dim]No monitors configured[/]");
+                return new Markup("[dim]No containers found[/]");
             }
 
-            // Show top 3 monitors
             var info = new List<string>();
-            foreach (var monitor in monitors.Take(3))
+            foreach (var container in containers.Take(8))
             {
-                var statusIcon = monitor.Status == Services.UptimeKuma.MonitorStatus.Up ? "🟢" : "🔴";
-                var color = monitor.Status == Services.UptimeKuma.MonitorStatus.Up ? "green" : "red";
-                var uptimeColor = monitor.UptimePercentage >= 99 ? "green" :
-                                 monitor.UptimePercentage >= 95 ? "yellow" : "red";
-
-                info.Add($"{statusIcon} [{color}]{monitor.Name}[/]");
-                info.Add($"  [{uptimeColor}]{monitor.UptimePercentage:F2}%[/] uptime");
+                var icon = container.IsRunning ? "[green]>[/]" : "[red]x[/]";
+                info.Add($"{icon} {Markup.Escape(container.Name)}");
             }
 
-            if (monitors.Count > 3)
+            if (containers.Count > 8)
             {
-                info.Add($"[dim]... and {monitors.Count - 3} more[/]");
+                info.Add($"[dim]... +{containers.Count - 8} more[/]");
             }
 
             return new Markup(string.Join("\n", info));
         }
         catch
         {
-            return new Markup("[dim]Uptime data unavailable[/]");
-        }
-    }
-
-    private async Task<Markup> GetSpeedtestInfo()
-    {
-        try
-        {
-            var client = _clientFactory.CreateSpeedtestClient();
-            var stats = await client.GetStatsAsync(7); // 7-day stats
-
-            var downloadColor = stats.AvgDownload >= 400 ? "green" :
-                               stats.AvgDownload >= 200 ? "yellow" : "red";
-            var uploadColor = stats.AvgUpload >= 40 ? "green" :
-                             stats.AvgUpload >= 20 ? "yellow" : "red";
-
-            var info = new List<string>
-            {
-                $"[{downloadColor}]↓ {stats.AvgDownload:F1} Mbps[/] download",
-                $"[{uploadColor}]↑ {stats.AvgUpload:F1} Mbps[/] upload",
-                $"[cyan]⚡ {stats.AvgPing:F0} ms[/] ping",
-                "",
-                $"[dim]{stats.TotalTests} tests (7d)[/]"
-            };
-
-            return new Markup(string.Join("\n", info));
-        }
-        catch
-        {
-            return new Markup("[dim]Speed data unavailable[/]");
+            return new Markup("[dim]Container data unavailable[/]");
         }
     }
 }

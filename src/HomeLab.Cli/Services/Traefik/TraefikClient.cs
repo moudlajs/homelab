@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 using HomeLab.Cli.Models;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Configuration;
-using HomeLab.Cli.Services.Mocks;
+
 
 namespace HomeLab.Cli.Services.Traefik;
 
@@ -66,8 +66,7 @@ public class TraefikClient : ITraefikClient
         }
         catch
         {
-            // Fall back to mock data if API is unavailable
-            return new MockTraefikClient().GetRoutesAsync().Result;
+            return new List<TraefikRoute>();
         }
     }
 
@@ -81,8 +80,7 @@ public class TraefikClient : ITraefikClient
         }
         catch
         {
-            // Fall back to mock data if API is unavailable
-            return new MockTraefikClient().GetServicesAsync().Result;
+            return new List<TraefikService>();
         }
     }
 
@@ -96,8 +94,7 @@ public class TraefikClient : ITraefikClient
         }
         catch
         {
-            // Fall back to mock data if API is unavailable
-            return new MockTraefikClient().GetMiddlewaresAsync().Result;
+            return new List<TraefikMiddleware>();
         }
     }
 
@@ -111,8 +108,7 @@ public class TraefikClient : ITraefikClient
         }
         catch
         {
-            // Fall back to mock data if API is unavailable
-            return new MockTraefikClient().GetOverviewAsync().Result;
+            return new TraefikOverview();
         }
     }
 }

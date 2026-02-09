@@ -3,10 +3,8 @@ using HomeLab.Cli.Commands.Dns;
 using HomeLab.Cli.Commands.HomeAssistant;
 using HomeLab.Cli.Commands.Monitor;
 using HomeLab.Cli.Commands.Network;
-using HomeLab.Cli.Commands.Quick;
 using HomeLab.Cli.Commands.Remote;
 using HomeLab.Cli.Commands.Speedtest;
-using HomeLab.Cli.Commands.Tailscale;
 using HomeLab.Cli.Commands.Traefik;
 using HomeLab.Cli.Commands.Tv;
 using HomeLab.Cli.Commands.Uptime;
@@ -134,23 +132,20 @@ public static class Program
             .WithAlias("dashboard")
             .WithDescription("Live dashboard (Terminal UI mode)");
 
-        // Phase 5 - Day 3: VPN Management
+        // VPN Management (via Tailscale)
         config.AddBranch("vpn", vpn =>
         {
-            vpn.SetDescription("Manage VPN peers and configuration");
-            vpn.AddCommand<VpnSetupCommand>("setup")
-                .WithDescription("Interactive wizard to set up VPN server");
+            vpn.SetDescription("Manage VPN connection (Tailscale)");
             vpn.AddCommand<VpnStatusCommand>("status")
+                .WithAlias("st")
+                .WithDescription("Display VPN connection status");
+            vpn.AddCommand<VpnUpCommand>("up")
+                .WithDescription("Connect to VPN");
+            vpn.AddCommand<VpnDownCommand>("down")
+                .WithDescription("Disconnect from VPN");
+            vpn.AddCommand<VpnDevicesCommand>("devices")
                 .WithAlias("ls")
-                .WithAlias("list")
-                .WithDescription("Display VPN peer status");
-            vpn.AddCommand<VpnAddPeerCommand>("add-peer")
-                .WithAlias("add")
-                .WithDescription("Add a new VPN peer");
-            vpn.AddCommand<VpnRemovePeerCommand>("remove-peer")
-                .WithAlias("rm")
-                .WithAlias("remove")
-                .WithDescription("Remove a VPN peer");
+                .WithDescription("List all VPN devices");
         });
 
         // Phase 5 - Day 4: DNS Management
@@ -305,44 +300,6 @@ public static class Program
             tv.AddCommand<TvDebugCommand>("debug")
                 .WithDescription("Debug TV connection and app detection");
         });
-
-        // Tailscale VPN
-        config.AddBranch("tailscale", tailscale =>
-        {
-            tailscale.SetDescription("Manage Tailscale VPN connection");
-            tailscale.AddCommand<TailscaleStatusCommand>("status")
-                .WithAlias("st")
-                .WithDescription("Display Tailscale connection status");
-            tailscale.AddCommand<TailscaleUpCommand>("up")
-                .WithDescription("Connect to Tailscale tailnet");
-            tailscale.AddCommand<TailscaleDownCommand>("down")
-                .WithDescription("Disconnect from Tailscale tailnet");
-            tailscale.AddCommand<TailscaleDevicesCommand>("devices")
-                .WithAlias("ls")
-                .WithDescription("List all devices on the tailnet");
-        });
-
-        // Phase 7: Quick Actions - Fast operations for daily use
-        config.AddCommand<QuickRestartCommand>("quick-restart")
-            .WithAlias("qr")
-            .WithDescription("Quick restart a service (fast, no confirmation)");
-
-        config.AddCommand<QuickUpdateCommand>("quick-update")
-            .WithAlias("qu")
-            .WithDescription("Quick update service (pull + restart)");
-
-        config.AddCommand<QuickBackupCommand>("quick-backup")
-            .WithAlias("qb")
-            .WithDescription("Quick backup container configs");
-
-        config.AddCommand<QuickFixCommand>("quick-fix")
-            .WithAlias("qf")
-            .WithDescription("Quick fix service (stop, clear cache, restart)");
-
-        config.AddCommand<QuickDogTvCommand>("quick-dog-tv")
-            .WithAlias("dog-tv")
-            .WithAlias("dtv")
-            .WithDescription("Quick turn on TV for your dog");
 
         // Shell completion
         config.AddCommand<CompletionCommand>("completion")

@@ -15,21 +15,19 @@ public class ShellCompletionHandler : IAutoCompleteHandler
             "status", "service", "config", "logs", "image-update", "cleanup",
             "version", "self-update", "tui",
             "vpn", "dns", "monitor", "remote", "uptime", "speedtest",
-            "ha", "traefik", "network", "tv", "tailscale",
-            "quick-restart", "quick-update", "quick-backup", "quick-fix", "quick-dog-tv",
-            "help", "clear", "exit"
+            "ha", "traefik", "network", "tv",
+            "completion", "help", "clear", "exit"
         },
-        ["vpn"] = new[] { "setup", "status", "add-peer", "remove-peer" },
+        ["vpn"] = new[] { "status", "up", "down", "devices" },
         ["dns"] = new[] { "stats", "blocked" },
-        ["monitor"] = new[] { "alerts", "targets", "dashboard" },
+        ["monitor"] = new[] { "report", "ask", "alerts", "targets", "dashboard" },
         ["remote"] = new[] { "connect", "list", "status", "sync", "remove" },
         ["uptime"] = new[] { "status", "alerts", "add", "remove" },
         ["speedtest"] = new[] { "run", "stats" },
         ["ha"] = new[] { "status", "control", "get", "list" },
         ["traefik"] = new[] { "status", "routes", "services", "middlewares" },
         ["network"] = new[] { "scan", "ports", "devices", "traffic", "intrusion", "status" },
-        ["tv"] = new[] { "status", "on", "off", "setup", "apps", "launch", "key", "debug" },
-        ["tailscale"] = new[] { "status", "up", "down", "devices" }
+        ["tv"] = new[] { "status", "on", "off", "setup", "apps", "launch", "key", "debug" }
     };
 
     public string[] GetSuggestions(string text, int index)

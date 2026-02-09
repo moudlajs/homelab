@@ -7,7 +7,7 @@ namespace HomeLab.Cli.Services.Abstractions;
 public interface IServiceClient
 {
     /// <summary>
-    /// The name of the service (e.g., "AdGuard", "WireGuard").
+    /// The name of the service (e.g., "AdGuard", "Tailscale").
     /// </summary>
     string ServiceName { get; }
 

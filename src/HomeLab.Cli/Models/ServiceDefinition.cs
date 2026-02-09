@@ -23,7 +23,7 @@ public enum ServiceType
 {
     Unknown,
     Dns,        // AdGuard Home
-    Vpn,        // WireGuard
+    Vpn,        // Tailscale
     Monitoring, // Prometheus
     Dashboard,  // Grafana
     Metrics,    // Node Exporter

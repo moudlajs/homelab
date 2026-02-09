@@ -125,14 +125,35 @@ public class ShellCommand : Command<ShellCommand.Settings>
         table.AddColumn("[yellow]Command[/]");
         table.AddColumn("[yellow]Description[/]");
 
-        table.AddRow("[cyan]tv[/] on/off/apps/launch/key", "Control LG TV");
-        table.AddRow("[cyan]tailscale[/] status/up/down/devices", "Manage Tailscale VPN");
+        // System
         table.AddRow("[cyan]status[/]", "Homelab status dashboard");
-        table.AddRow("[cyan]vpn[/] status/add-peer/remove-peer", "WireGuard VPN");
-        table.AddRow("[cyan]dns[/] stats/blocked", "DNS management");
-        table.AddRow("[cyan]network[/] scan/ports/devices/status", "Network monitoring");
-        table.AddRow("[cyan]quick-dog-tv[/]", "Turn on TV for your dog");
+        table.AddRow("[cyan]service[/] start/stop/restart", "Manage service lifecycle");
+        table.AddRow("[cyan]config[/] view/edit/backup/restore", "Manage configuration");
+        table.AddRow("[cyan]logs[/] <container>", "View container logs");
+        table.AddRow("[cyan]image-update[/]", "Update container images");
+        table.AddRow("[cyan]cleanup[/]", "Clean up Docker resources");
+        table.AddRow("", "");
+
+        // Monitoring
+        table.AddRow("[cyan]monitor[/] report/ask/alerts/targets/dashboard", "AI monitoring & metrics");
+        table.AddRow("[cyan]vpn[/] status/up/down/devices", "VPN management (Tailscale)");
+        table.AddRow("[cyan]network[/] scan/ports/devices/traffic/intrusion/status", "Network monitoring");
+        table.AddRow("[cyan]dns[/] stats/blocked", "DNS & ad-blocking");
+        table.AddRow("", "");
+
+        // Devices & services
+        table.AddRow("[cyan]tv[/] on/off/apps/launch/key/status/setup", "LG TV control");
+        table.AddRow("[cyan]ha[/] status/control/get/list", "Home Assistant");
+        table.AddRow("[cyan]traefik[/] status/routes/services/middlewares", "Traefik proxy");
+        table.AddRow("[cyan]uptime[/] status/alerts/add/remove", "Uptime monitoring");
+        table.AddRow("[cyan]speedtest[/] run/stats", "Speed testing");
+        table.AddRow("[cyan]remote[/] connect/list/status/sync/remove", "Remote management");
+        table.AddRow("", "");
+
+        // Meta
         table.AddRow("[cyan]tui[/]", "Live dashboard");
+        table.AddRow("[cyan]version[/]", "Version info");
+        table.AddRow("[cyan]self-update[/]", "Update CLI");
         table.AddRow("[dim]clear[/]", "Clear screen");
         table.AddRow("[dim]exit[/]", "Exit shell");
 

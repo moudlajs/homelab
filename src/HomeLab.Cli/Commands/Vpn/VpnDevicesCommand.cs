@@ -5,9 +5,9 @@ using HomeLab.Cli.Services.Output;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace HomeLab.Cli.Commands.Tailscale;
+namespace HomeLab.Cli.Commands.Vpn;
 
-public class TailscaleDevicesCommand : AsyncCommand<TailscaleDevicesCommand.Settings>
+public class VpnDevicesCommand : AsyncCommand<VpnDevicesCommand.Settings>
 {
     private readonly IServiceClientFactory _clientFactory;
     private readonly IOutputFormatter _formatter;
@@ -27,7 +27,7 @@ public class TailscaleDevicesCommand : AsyncCommand<TailscaleDevicesCommand.Sett
         public string? ExportFile { get; set; }
     }
 
-    public TailscaleDevicesCommand(IServiceClientFactory clientFactory, IOutputFormatter formatter)
+    public VpnDevicesCommand(IServiceClientFactory clientFactory, IOutputFormatter formatter)
     {
         _clientFactory = clientFactory;
         _formatter = formatter;
@@ -36,7 +36,7 @@ public class TailscaleDevicesCommand : AsyncCommand<TailscaleDevicesCommand.Sett
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         AnsiConsole.Write(
-            new FigletText("Tailscale Devices")
+            new FigletText("VPN Devices")
                 .Centered()
                 .Color(Color.Cyan));
 
@@ -62,7 +62,7 @@ public class TailscaleDevicesCommand : AsyncCommand<TailscaleDevicesCommand.Sett
         if (!status.IsConnected)
         {
             AnsiConsole.MarkupLine("[red]✗[/] Not connected to Tailscale");
-            AnsiConsole.MarkupLine("Use [cyan]homelab tailscale up[/] to connect.");
+            AnsiConsole.MarkupLine("Use [cyan]homelab vpn up[/] to connect.");
             return 1;
         }
 

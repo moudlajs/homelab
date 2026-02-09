@@ -12,11 +12,6 @@ public interface IHomelabConfigService
     Task<HomelabConfig> LoadConfigAsync();
 
     /// <summary>
-    /// Gets whether to use mock services for testing.
-    /// </summary>
-    bool UseMockServices { get; }
-
-    /// <summary>
     /// Gets the Docker host connection string.
     /// </summary>
     string DockerHost { get; }
@@ -58,7 +53,6 @@ public class HomelabConfig
 /// </summary>
 public class DevelopmentConfig
 {
-    public bool UseMockServices { get; set; }
     public string DockerHost { get; set; } = "unix:///var/run/docker.sock";
     public string ComposeFile { get; set; } = "~/Projects/homelab-mock/docker-compose.yml";
 }
