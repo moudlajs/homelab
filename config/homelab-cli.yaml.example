@@ -27,6 +27,20 @@ services:
   tailscale:
     enabled: true
 
+  ai:
+    provider: "anthropic"
+    model: "claude-haiku-4-5-20251001"
+    token: ""  # Get from https://console.anthropic.com/settings/keys
+    enabled: true
+
+  ntopng:
+    url: "http://localhost:3002"
+    enabled: true
+
+  suricata:
+    log_path: "~/Repos/homelab/data/suricata/logs/eve.json"
+    enabled: true
+
 remote:
   mac_mini:
     host: "192.168.1.100"  # Update with your Mac Mini IP
