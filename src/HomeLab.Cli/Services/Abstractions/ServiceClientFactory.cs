@@ -1,4 +1,5 @@
 using HomeLab.Cli.Services.AdGuard;
+using HomeLab.Cli.Services.Camera;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Grafana;
@@ -79,5 +80,10 @@ public class ServiceClientFactory : IServiceClientFactory
     public ITailscaleClient CreateTailscaleClient()
     {
         return new TailscaleClient();
+    }
+
+    public IScryptedClient CreateScryptedClient()
+    {
+        return new ScryptedClient(_configService, _httpClient);
     }
 }

@@ -1,4 +1,5 @@
 using HomeLab.Cli.Commands;
+using HomeLab.Cli.Commands.Camera;
 using HomeLab.Cli.Commands.Dns;
 using HomeLab.Cli.Commands.HomeAssistant;
 using HomeLab.Cli.Commands.Monitor;
@@ -330,6 +331,28 @@ public static class Program
                 .WithDescription("Get or set TV system settings");
             tv.AddCommand<TvDebugCommand>("debug")
                 .WithDescription("Debug TV connection and app detection");
+        });
+
+        // Camera Management (via Scrypted)
+        config.AddBranch("camera", camera =>
+        {
+            camera.SetDescription("Manage security cameras (Scrypted)");
+            camera.AddCommand<CameraListCommand>("list")
+                .WithAlias("ls")
+                .WithDescription("List all cameras");
+            camera.AddCommand<CameraStatusCommand>("status")
+                .WithAlias("st")
+                .WithDescription("Show camera system status");
+            camera.AddCommand<CameraSetupCommand>("setup")
+                .WithDescription("Configure Scrypted connection");
+            camera.AddCommand<CameraStreamCommand>("stream")
+                .WithDescription("Get camera stream URLs");
+            camera.AddCommand<CameraSnapshotCommand>("snapshot")
+                .WithAlias("snap")
+                .WithDescription("Capture a still image from camera");
+            camera.AddCommand<CameraRecordingsCommand>("recordings")
+                .WithAlias("rec")
+                .WithDescription("List camera recordings");
         });
 
         // Shell completion

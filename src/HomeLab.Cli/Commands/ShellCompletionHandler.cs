@@ -15,7 +15,7 @@ public class ShellCompletionHandler : IAutoCompleteHandler
             "status", "service", "config", "logs", "image-update", "cleanup",
             "version", "self-update", "tui",
             "vpn", "dns", "monitor", "remote", "uptime", "speedtest",
-            "ha", "traefik", "network", "tv",
+            "ha", "traefik", "network", "tv", "camera",
             "completion", "help", "clear", "exit"
         },
         ["vpn"] = new[] { "status", "up", "down", "devices" },
@@ -27,7 +27,8 @@ public class ShellCompletionHandler : IAutoCompleteHandler
         ["ha"] = new[] { "status", "control", "get", "list" },
         ["traefik"] = new[] { "status", "routes", "services", "middlewares" },
         ["network"] = new[] { "scan", "ports", "devices", "traffic", "intrusion", "status", "analyze" },
-        ["tv"] = new[] { "status", "on", "off", "setup", "apps", "launch", "key", "screen", "input", "sound", "channel", "info", "notify", "settings", "debug" }
+        ["tv"] = new[] { "status", "on", "off", "setup", "apps", "launch", "key", "screen", "input", "sound", "channel", "info", "notify", "settings", "debug" },
+        ["camera"] = new[] { "list", "status", "setup", "stream", "snapshot", "recordings" }
     };
 
     public string[] GetSuggestions(string text, int index)

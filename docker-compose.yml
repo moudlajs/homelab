@@ -77,3 +77,13 @@ services:
       - ./data/suricata/rules:/var/lib/suricata/rules
       - ./config/suricata/suricata.yaml:/etc/suricata/suricata.yaml
     command: -i eth0
+
+  scrypted:
+    image: koush/scrypted:latest
+    container_name: homelab_scrypted
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./data/scrypted:/server/volume
+    environment:
+      - SCRYPTED_INSECURE_PORT=11080

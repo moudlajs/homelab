@@ -143,6 +143,7 @@ public class ShellCommand : Command<ShellCommand.Settings>
 
         // Devices & services
         table.AddRow("[cyan]tv[/] on/off/apps/launch/key/status/setup", "LG TV control");
+        table.AddRow("[cyan]camera[/] list/status/setup/stream/snapshot/recordings", "Security cameras (Scrypted)");
         table.AddRow("[cyan]ha[/] status/control/get/list", "Home Assistant");
         table.AddRow("[cyan]traefik[/] status/routes/services/middlewares", "Traefik proxy");
         table.AddRow("[cyan]uptime[/] status/alerts/add/remove", "Uptime monitoring");

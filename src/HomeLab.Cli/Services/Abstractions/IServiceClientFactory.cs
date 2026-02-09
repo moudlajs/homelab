@@ -54,4 +54,9 @@ public interface IServiceClientFactory
     /// Creates a Tailscale client.
     /// </summary>
     ITailscaleClient CreateTailscaleClient();
+
+    /// <summary>
+    /// Creates a Scrypted client for camera management.
+    /// </summary>
+    IScryptedClient CreateScryptedClient();
 }

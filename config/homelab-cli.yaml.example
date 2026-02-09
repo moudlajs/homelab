@@ -36,6 +36,12 @@ services:
     log_path: "~/Repos/homelab/data/suricata/logs/eve.json"
     enabled: true
 
+  scrypted:
+    url: "http://localhost:11080"
+    username: "admin"
+    password: ""
+    enabled: true
+
 remote:
   mac_mini:
     host: "192.168.1.100"

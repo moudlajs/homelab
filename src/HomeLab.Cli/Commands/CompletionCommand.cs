@@ -50,7 +50,7 @@ _homelab_completions()
     _init_completion || return
 
     # Top-level commands
-    local commands=""status st service svc config logs image-update cleanup version self-update tui ui dashboard vpn dns monitor remote uptime speedtest ha traefik network tv completion shell""
+    local commands=""status st service svc config logs image-update cleanup version self-update tui ui dashboard vpn dns monitor remote uptime speedtest ha traefik network tv camera completion shell""
 
     # VPN subcommands
     local vpn_commands=""status st up down devices ls""
@@ -81,6 +81,9 @@ _homelab_completions()
 
     # TV subcommands
     local tv_commands=""on off apps launch key screen input sound channel info notify settings status st setup debug""
+
+    # Camera subcommands
+    local camera_commands=""list ls status st setup stream snapshot snap recordings rec""
 
     # Common flags
     local output_flags=""--output --export""
@@ -121,6 +124,9 @@ _homelab_completions()
                 ;;
             tv)
                 COMPREPLY=( $(compgen -W ""$tv_commands"" -- ""$cur"") )
+                ;;
+            camera)
+                COMPREPLY=( $(compgen -W ""$camera_commands"" -- ""$cur"") )
                 ;;
             completion)
                 COMPREPLY=( $(compgen -W ""bash zsh"" -- ""$cur"") )
@@ -180,6 +186,7 @@ _homelab() {
                 ""traefik[Manage Traefik reverse proxy]"" \
                 ""network[Network scanning and monitoring]"" \
                 ""tv[Control LG WebOS Smart TV]"" \
+                ""camera[Manage security cameras (Scrypted)]"" \
                 ""shell[Interactive shell mode]"" \
                 ""completion[Generate shell completion scripts]""
             ;;
@@ -291,6 +298,19 @@ _homelab() {
                         ""st[Alias for status]"" \
                         ""setup[Configure and pair with TV]"" \
                         ""debug[Debug TV connection]""
+                    ;;
+                camera)
+                    _values ""camera commands"" \
+                        ""list[List all cameras]"" \
+                        ""ls[Alias for list]"" \
+                        ""status[Show camera system status]"" \
+                        ""st[Alias for status]"" \
+                        ""setup[Configure Scrypted connection]"" \
+                        ""stream[Get camera stream URLs]"" \
+                        ""snapshot[Capture a still image from camera]"" \
+                        ""snap[Alias for snapshot]"" \
+                        ""recordings[List camera recordings]"" \
+                        ""rec[Alias for recordings]""
                     ;;
                 completion)
                     _values ""shell types"" \
