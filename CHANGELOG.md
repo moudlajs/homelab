@@ -5,6 +5,56 @@ All notable changes to the HomeLab CLI project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-02-09
+
+### Changed - Codebase Cleanup & Redesign
+
+#### Removed Dead Code (-3,074 lines)
+- **WireGuard removed** — all 8 files deleted (replaced by Tailscale)
+- **Quick commands removed** — all 5 files deleted (fake implementations)
+- **Mock services removed** — all 8 files deleted (never used, no tests)
+- **`UseMockServices` config removed** — dead toggle
+
+#### VPN Namespace Unification
+- `homelab tailscale status/up/down/devices` renamed to `homelab vpn status/up/down/devices`
+- User-facing abstraction — command surface doesn't expose service name
+
+#### TUI Dashboard Fix
+- Removed fake uptime/speed panels (showed mock data silently when services offline)
+- Replaced with real Docker container list panel
+
+#### Shell & Completions Update
+- Shell help now shows all commands grouped by category (was showing 7 out of 50+)
+- Updated bash, zsh, and tab completions to match current command surface
+- Removed dead quick-*, tailscale, WireGuard vpn references
+
+#### Other Fixes
+- TraefikClient returns empty data on failure instead of mock fallbacks
+- Health check uses Tailscale client for VPN type
+- Removed broken Prometheus Docker metrics target
+- Removed wireguard service from docker-compose
+
+### Added - AI-Powered Monitoring
+
+#### AI Health Reports
+- **`homelab monitor report`** — AI-generated health summary using Claude Haiku
+- **`homelab monitor report --raw`** — raw data only, no API call
+- **`homelab monitor ask "question"`** — ask anything about your homelab state
+- Collects data from 4 sources in parallel: system metrics, Docker, Prometheus, network
+- Cost: ~$0.001-0.002 per query (~$0.50/month at 5x/day)
+
+#### Network Data Collection
+- nmap device discovery integrated into AI data collector
+- ntopng traffic stats fed to AI analysis
+- Suricata IDS alerts included in health reports
+
+#### Monitoring Containers
+- ntopng container configured and running (port 3002)
+- Suricata IDS container with ET Open rules (47,942 rules)
+- Both containers in docker-compose.yml with proper config
+
+---
+
 ## [1.11.0] - 2026-02-08
 
 ### Added - Interactive Shell, Tailscale & Self-Update Overhaul
@@ -15,15 +65,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ReadLine-based input with history persistence
 
 #### Tailscale VPN Integration
-- **`homelab tailscale status`** — Display Tailscale connection status
-- **`homelab tailscale up`** — Connect to Tailscale tailnet
-- **`homelab tailscale down`** — Disconnect from Tailscale tailnet
-- **`homelab tailscale devices`** — List all devices on the tailnet
+- **`homelab vpn status`** — Display VPN connection status (Tailscale)
+- **`homelab vpn up`** — Connect to VPN
+- **`homelab vpn down`** — Disconnect from VPN
+- **`homelab vpn devices`** — List all devices on the tailnet
 
 #### Graceful Docker Handling
 - `homelab status` and `homelab tui` detect when Docker is unavailable
 - Shows friendly message instead of connection error spam
-- Non-Docker commands (tv, tailscale, network) work regardless
+- Non-Docker commands (tv, vpn, network) work regardless
 
 #### TV Fix
 - `homelab tv launch default` now works correctly
@@ -574,6 +624,8 @@ Monitor internet connection speed over time:
 
 ---
 
+[1.12.0]: https://github.com/moudlajs/homelab/compare/v1.11.0...v1.12.0
+[1.11.0]: https://github.com/moudlajs/homelab/compare/v1.8.0...v1.11.0
 [1.8.0]: https://github.com/moudlajs/homelab/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/moudlajs/homelab/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/moudlajs/homelab/compare/v1.6.0...v1.6.1

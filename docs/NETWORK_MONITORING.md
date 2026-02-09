@@ -254,31 +254,20 @@ network:
 
 Options: `low`, `medium`, `high`, `critical`
 
-### Mock Mode
-
-For testing without real services:
-
-```yaml
-development:
-  use_mock_services: true
-```
-
-This enables mock implementations with realistic sample data.
-
 ### Docker Configuration
 
 Customize ntopng and Suricata in `docker-compose.yml`:
 
 ```yaml
 ntopng:
-  image: ntop/ntopng:stable
+  image: ntop/ntopng:latest
   network_mode: host  # Required for traffic monitoring
   command: --community --http-port 3002
 
 suricata:
   image: jasonish/suricata:latest
   network_mode: host  # Required for packet capture
-  command: -i en0 --init-errors-fatal  # Change en0 to your interface
+  command: -i eth0  # eth0 for OrbStack/Docker VM, or your host interface
 ```
 
 **Finding your network interface:**
@@ -691,8 +680,7 @@ If you encounter issues:
 
 1. Check [Troubleshooting](#troubleshooting) section above
 2. Review Docker container logs: `docker logs homelab_ntopng` or `docker logs homelab_suricata`
-3. Run in mock mode to isolate issues: `use_mock_services: true`
-4. [Open an issue](https://github.com/moudlajs/homelab/issues) with:
+3. [Open an issue](https://github.com/moudlajs/homelab/issues) with:
    - Command executed
    - Error message
    - `homelab --version`

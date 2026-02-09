@@ -10,7 +10,7 @@
 - SSH.NET (remote operations)
 - xUnit + Moq + FluentAssertions (testing)
 
-**Version:** 1.8.0 (see `HomeLab.Cli.csproj` for current version)
+**Version:** See `HomeLab.Cli.csproj` and `CHANGELOG.md` for current version
 
 ---
 
@@ -52,9 +52,16 @@ refactor: code restructuring
 ### Layer Structure
 ```
 Commands/           UI layer - Spectre.Console commands
-├── Dns/           Domain-grouped commands
-├── Vpn/
-├── Quick/
+├── Dns/           AdGuard Home
+├── HomeAssistant/ Home Assistant
+├── Monitor/       AI monitoring (Claude)
+├── Network/       nmap, ntopng, Suricata
+├── Remote/        SSH management
+├── Speedtest/     Speed testing
+├── Traefik/       Reverse proxy
+├── Tv/            LG WebOS control
+├── Uptime/        Uptime Kuma
+├── Vpn/           Tailscale VPN
 └── ...
 
 Services/           Business logic - all have interfaces
@@ -62,6 +69,8 @@ Services/           Business logic - all have interfaces
 ├── Docker/        DockerService (container management)
 ├── Configuration/ Config file handling
 ├── Health/        Health checks
+├── Tailscale/     VPN client (CLI wrapper)
+├── AI/            Claude API integration
 └── ...
 
 Models/            Data structures (DTOs, config models)
@@ -131,8 +140,8 @@ public class MyCommand : Command<MyCommand.Settings>
 | `Docker.DotNet` | Docker API client | DockerService |
 | `SSH.NET` | Remote SSH operations | Remote commands |
 | `YamlDotNet` | Config file parsing | HomelabConfigService |
-| `QRCoder` | QR code generation | VPN peer setup |
 | `CsvHelper` | CSV export functionality | OutputFormatter |
+| `ReadLine` | Interactive shell input | ShellCommand |
 
 ---
 
@@ -262,7 +271,6 @@ AnsiConsole.MarkupLine("[green]Status:[/] Running");
 ### Config Files
 - `config/homelab-cli.yaml` - User configuration
 - `data/` - Persistent service data (gitignored)
-- `.temp/` - Work-in-progress docs (gitignored)
 
 ---
 
