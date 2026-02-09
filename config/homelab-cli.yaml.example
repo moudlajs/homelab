@@ -1,17 +1,12 @@
 development:
-  use_mock_services: false  # false = real Docker services, true = mock implementations
   docker_host: "unix:///var/run/docker.sock"
-  compose_file: "~/Projects/homelab-mock/docker-compose.yml"
+  compose_file: "~/Repos/homelab/docker-compose.yml"
 
 services:
   adguard:
     url: "http://localhost:3000"
     username: "admin"
     password: "admin"
-    enabled: true
-
-  wireguard:
-    config_path: "~/Projects/homelab-mock/data/wireguard"
     enabled: true
 
   prometheus:
@@ -43,14 +38,11 @@ services:
 
 remote:
   mac_mini:
-    host: "192.168.1.100"  # Update with your Mac Mini IP
-    user: "your-username"   # Update with your username
+    host: "192.168.1.100"
+    user: "your-username"
     docker_host: "unix:///var/run/docker.sock"
     compose_file: "/path/to/mac-mini/docker-compose.yml"
 
-# GitHub configuration for self-update (required for private repos)
+# GitHub configuration for self-update
 github:
-  # Personal access token with 'repo' scope
-  # Generate at: https://github.com/settings/tokens/new
-  # Required scopes: repo (for private repos) or public_repo (for public repos)
-  token: ""  # Add your token here
+  token: ""  # Generate at: https://github.com/settings/tokens/new

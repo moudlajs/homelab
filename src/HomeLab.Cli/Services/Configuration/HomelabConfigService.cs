@@ -55,15 +55,6 @@ public class HomelabConfigService : IHomelabConfigService
         }
     }
 
-    public bool UseMockServices
-    {
-        get
-        {
-            _config ??= LoadConfigAsync().GetAwaiter().GetResult();
-            return _config.Development.UseMockServices;
-        }
-    }
-
     public string DockerHost
     {
         get

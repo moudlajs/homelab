@@ -50,16 +50,16 @@ _homelab_completions()
     _init_completion || return
 
     # Top-level commands
-    local commands=""status st service svc config logs image-update cleanup version self-update tui ui dashboard vpn dns monitor remote uptime speedtest ha traefik network quick-restart qr quick-update qu quick-backup qb quick-fix qf completion""
+    local commands=""status st service svc config logs image-update cleanup version self-update tui ui dashboard vpn dns monitor remote uptime speedtest ha traefik network tv completion shell""
 
     # VPN subcommands
-    local vpn_commands=""status ls list add-peer add remove-peer rm remove""
+    local vpn_commands=""status st up down devices ls""
 
     # DNS subcommands
     local dns_commands=""stats st blocked bl""
 
     # Monitor subcommands
-    local monitor_commands=""alerts al targets tg dashboard dash db""
+    local monitor_commands=""report ai ask alerts al targets tg dashboard dash db""
 
     # Remote subcommands
     local remote_commands=""connect list status sync remove""
@@ -78,6 +78,9 @@ _homelab_completions()
 
     # Network subcommands
     local network_commands=""scan ports devices traffic intrusion alerts status st""
+
+    # TV subcommands
+    local tv_commands=""on off apps launch key status st setup debug""
 
     # Common flags
     local output_flags=""--output --export""
@@ -115,6 +118,9 @@ _homelab_completions()
                 ;;
             network)
                 COMPREPLY=( $(compgen -W ""$network_commands"" -- ""$cur"") )
+                ;;
+            tv)
+                COMPREPLY=( $(compgen -W ""$tv_commands"" -- ""$cur"") )
                 ;;
             completion)
                 COMPREPLY=( $(compgen -W ""bash zsh"" -- ""$cur"") )
@@ -164,7 +170,7 @@ _homelab() {
                 ""tui[Live dashboard (Terminal UI mode)]"" \
                 ""ui[Alias for tui]"" \
                 ""dashboard[Alias for tui]"" \
-                ""vpn[Manage VPN peers and configuration]"" \
+                ""vpn[Manage VPN connection (Tailscale)]"" \
                 ""dns[Manage DNS and ad-blocking]"" \
                 ""monitor[Monitor homelab metrics and alerts]"" \
                 ""remote[Manage remote homelab connections]"" \
@@ -173,28 +179,20 @@ _homelab() {
                 ""ha[Control Home Assistant smart home devices]"" \
                 ""traefik[Manage Traefik reverse proxy]"" \
                 ""network[Network scanning and monitoring]"" \
-                ""quick-restart[Quick restart a service]"" \
-                ""qr[Alias for quick-restart]"" \
-                ""quick-update[Quick update service]"" \
-                ""qu[Alias for quick-update]"" \
-                ""quick-backup[Quick backup container configs]"" \
-                ""qb[Alias for quick-backup]"" \
-                ""quick-fix[Quick fix service]"" \
-                ""qf[Alias for quick-fix]"" \
+                ""tv[Control LG WebOS Smart TV]"" \
+                ""shell[Interactive shell mode]"" \
                 ""completion[Generate shell completion scripts]""
             ;;
         args)
             case $line[1] in
                 vpn)
                     _values ""vpn commands"" \
-                        ""status[Display VPN peer status]"" \
-                        ""ls[Alias for status]"" \
-                        ""list[Alias for status]"" \
-                        ""add-peer[Add a new VPN peer]"" \
-                        ""add[Alias for add-peer]"" \
-                        ""remove-peer[Remove a VPN peer]"" \
-                        ""rm[Alias for remove-peer]"" \
-                        ""remove[Alias for remove-peer]""
+                        ""status[Display VPN connection status]"" \
+                        ""st[Alias for status]"" \
+                        ""up[Connect to VPN]"" \
+                        ""down[Disconnect from VPN]"" \
+                        ""devices[List all VPN devices]"" \
+                        ""ls[Alias for devices]""
                     ;;
                 dns)
                     _values ""dns commands"" \
@@ -205,6 +203,9 @@ _homelab() {
                     ;;
                 monitor)
                     _values ""monitor commands"" \
+                        ""report[AI-powered homelab health summary]"" \
+                        ""ai[Alias for report]"" \
+                        ""ask[Ask AI about your homelab]"" \
                         ""alerts[Display active Prometheus alerts]"" \
                         ""al[Alias for alerts]"" \
                         ""targets[Display Prometheus scrape targets]"" \
@@ -266,6 +267,18 @@ _homelab() {
                         ""alerts[Alias for intrusion]"" \
                         ""status[Comprehensive network health overview]"" \
                         ""st[Alias for status]""
+                    ;;
+                tv)
+                    _values ""tv commands"" \
+                        ""on[Turn TV on via Wake-on-LAN]"" \
+                        ""off[Turn TV off via WebOS API]"" \
+                        ""apps[List installed apps on TV]"" \
+                        ""launch[Launch an app on TV]"" \
+                        ""key[Send remote control key to TV]"" \
+                        ""status[Check TV status and connectivity]"" \
+                        ""st[Alias for status]"" \
+                        ""setup[Configure and pair with TV]"" \
+                        ""debug[Debug TV connection]""
                     ;;
                 completion)
                     _values ""shell types"" \

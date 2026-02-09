@@ -6,9 +6,6 @@ using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.Vpn;
 
-/// <summary>
-/// Displays VPN peer status and statistics.
-/// </summary>
 public class VpnStatusCommand : AsyncCommand<VpnStatusCommand.Settings>
 {
     private readonly IServiceClientFactory _clientFactory;
@@ -36,107 +33,126 @@ public class VpnStatusCommand : AsyncCommand<VpnStatusCommand.Settings>
         AnsiConsole.Write(
             new FigletText("VPN Status")
                 .Centered()
-                .Color(Color.Cyan));
+                .Color(Color.Blue));
 
         AnsiConsole.WriteLine();
 
-        // Get WireGuard client
-        var client = _clientFactory.CreateWireGuardClient();
+        var client = _clientFactory.CreateTailscaleClient();
 
-        // Check health first
+        if (!await client.IsTailscaleInstalledAsync())
+        {
+            AnsiConsole.MarkupLine("[red]✗[/] Tailscale CLI is not installed");
+            AnsiConsole.MarkupLine("\nInstall with: [cyan]brew install tailscale[/]");
+            return 1;
+        }
+
         await AnsiConsole.Status()
-            .StartAsync("Checking WireGuard status...", async ctx =>
+            .StartAsync("Checking Tailscale status...", async ctx =>
             {
                 ctx.Spinner(Spinner.Known.Dots);
                 await Task.Delay(300);
             });
 
-        var healthInfo = await client.GetHealthInfoAsync();
+        var status = await client.GetStatusAsync();
 
-        if (!healthInfo.IsHealthy)
-        {
-            AnsiConsole.MarkupLine($"[red]✗[/] WireGuard service is not healthy: {healthInfo.Message}");
-            return 1;
-        }
-
-        AnsiConsole.MarkupLine($"[green]✓[/] WireGuard service is healthy\n");
-
-        // Get all peers
-        var peers = await client.GetPeersAsync();
+        var statusColor = status.IsConnected ? "green" : "red";
+        var statusIcon = status.IsConnected ? "✓" : "✗";
+        AnsiConsole.MarkupLine($"[{statusColor}]{statusIcon}[/] Tailscale is [bold]{status.BackendState}[/]\n");
 
         // Try export if requested
-        if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, peers))
+        if (await OutputHelper.TryExportAsync(_formatter, settings.OutputFormat, settings.ExportFile, status))
         {
             return 0;
         }
 
-        if (peers.Count == 0)
+        // Connection info panel
+        var connectionGrid = new Grid();
+        connectionGrid.AddColumn();
+        connectionGrid.AddColumn();
+
+        connectionGrid.AddRow(
+            new Markup("[yellow]Tailnet:[/]"),
+            new Markup($"[cyan]{status.TailnetName ?? "N/A"}[/]"));
+        connectionGrid.AddRow(
+            new Markup("[yellow]Backend State:[/]"),
+            new Markup($"[cyan]{status.BackendState}[/]"));
+
+        if (status.Self != null)
         {
-            AnsiConsole.MarkupLine("[yellow]No VPN peers configured.[/]");
-            AnsiConsole.MarkupLine("\nUse [cyan]homelab vpn add-peer <name>[/] to add a peer.");
-            return 0;
+            connectionGrid.AddRow(
+                new Markup("[yellow]Hostname:[/]"),
+                new Markup($"[cyan]{status.Self.HostName}[/]"));
+            connectionGrid.AddRow(
+                new Markup("[yellow]Tailscale IP:[/]"),
+                new Markup($"[cyan]{status.Self.PrimaryIP ?? "N/A"}[/]"));
+            connectionGrid.AddRow(
+                new Markup("[yellow]DNS Name:[/]"),
+                new Markup($"[dim]{status.Self.DNSName}[/]"));
         }
 
-        // Create peers table
-        var table = new Table();
-        table.Border(TableBorder.Rounded);
-        table.AddColumn("[yellow]Peer Name[/]");
-        table.AddColumn("[yellow]Status[/]");
-        table.AddColumn("[yellow]IP Address[/]");
-        table.AddColumn("[yellow]Last Handshake[/]");
-        table.AddColumn("[yellow]Transfer[/]");
-
-        foreach (var peer in peers)
-        {
-            var statusIcon = peer.IsActive ? "🟢" : "🔴";
-            var statusColor = peer.IsActive ? "green" : "red";
-            var statusText = peer.IsActive ? "Active" : "Inactive";
-
-            var lastHandshake = peer.LastHandshake.HasValue
-                ? FormatTimeAgo(peer.LastHandshake.Value)
-                : "Never";
-
-            var transfer = $"↓ {FormatBytes(peer.BytesReceived)} / ↑ {FormatBytes(peer.BytesSent)}";
-
-            table.AddRow(
-                peer.Name,
-                $"{statusIcon} [{statusColor}]{statusText}[/]",
-                peer.AllowedIPs,
-                $"[dim]{lastHandshake}[/]",
-                $"[dim]{transfer}[/]"
-            );
-        }
-
-        AnsiConsole.Write(table);
-
-        // Summary
-        AnsiConsole.WriteLine();
-        var activePeers = peers.Count(p => p.IsActive);
-        var totalPeers = peers.Count;
-
-        var grid = new Grid();
-        grid.AddColumn();
-        grid.AddColumn();
-
-        grid.AddRow(
-            $"[green]Active Peers:[/] {activePeers}",
-            $"[yellow]Total Peers:[/] {totalPeers}"
-        );
+        var version = await client.GetVersionAsync();
+        connectionGrid.AddRow(
+            new Markup("[yellow]Version:[/]"),
+            new Markup($"[dim]{version ?? "Unknown"}[/]"));
 
         AnsiConsole.Write(
-            new Panel(grid)
-                .Header("[yellow]Summary[/]")
-                .BorderColor(Color.Grey)
-                .RoundedBorder()
-        );
+            new Panel(connectionGrid)
+                .Header("[yellow]Connection Info[/]")
+                .BorderColor(Color.Green)
+                .RoundedBorder());
+
+        // Peers table
+        if (status.IsConnected && status.Peers.Count > 0)
+        {
+            AnsiConsole.WriteLine();
+
+            var table = new Table();
+            table.Border(TableBorder.Rounded);
+            table.AddColumn("[yellow]Hostname[/]");
+            table.AddColumn("[yellow]Status[/]");
+            table.AddColumn("[yellow]Tailscale IP[/]");
+            table.AddColumn("[yellow]OS[/]");
+            table.AddColumn("[yellow]Last Seen[/]");
+
+            foreach (var peer in status.Peers.OrderBy(p => p.HostName))
+            {
+                var onlineColor = peer.Online ? "green" : "red";
+                var onlineText = peer.Online ? "Online" : "Offline";
+                var lastSeen = peer.LastSeen.HasValue
+                    ? FormatTimeAgo(peer.LastSeen.Value)
+                    : "Never";
+
+                table.AddRow(
+                    peer.HostName,
+                    $"[{onlineColor}]{onlineText}[/]",
+                    peer.PrimaryIP ?? "N/A",
+                    peer.OS,
+                    $"[dim]{lastSeen}[/]");
+            }
+
+            AnsiConsole.Write(table);
+
+            AnsiConsole.WriteLine();
+            var onlinePeers = status.Peers.Count(p => p.Online);
+            AnsiConsole.Write(
+                new Panel($"[green]Online:[/] {onlinePeers}  [yellow]Total:[/] {status.Peers.Count}")
+                    .Header("[yellow]Peers[/]")
+                    .BorderColor(Color.Grey)
+                    .RoundedBorder());
+        }
+        else if (!status.IsConnected)
+        {
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[yellow]Tailscale is not connected.[/]");
+            AnsiConsole.MarkupLine("Use [cyan]homelab vpn up[/] to connect.");
+        }
 
         return 0;
     }
 
-    private string FormatTimeAgo(DateTime dateTime)
+    private static string FormatTimeAgo(DateTime dateTime)
     {
         var timeAgo = DateTime.UtcNow - dateTime;
-
         if (timeAgo.TotalMinutes < 1)
         {
             return "Just now";
@@ -153,20 +169,5 @@ public class VpnStatusCommand : AsyncCommand<VpnStatusCommand.Settings>
         }
 
         return $"{(int)timeAgo.TotalDays}d ago";
-    }
-
-    private string FormatBytes(long bytes)
-    {
-        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-        double len = bytes;
-        int order = 0;
-
-        while (len >= 1024 && order < sizes.Length - 1)
-        {
-            order++;
-            len = len / 1024;
-        }
-
-        return $"{len:0.##} {sizes[order]}";
     }
 }

@@ -11,11 +11,6 @@ public interface IServiceClientFactory
     IAdGuardClient CreateAdGuardClient();
 
     /// <summary>
-    /// Creates a WireGuard client.
-    /// </summary>
-    IWireGuardClient CreateWireGuardClient();
-
-    /// <summary>
     /// Creates a Prometheus client.
     /// </summary>
     IPrometheusClient CreatePrometheusClient();

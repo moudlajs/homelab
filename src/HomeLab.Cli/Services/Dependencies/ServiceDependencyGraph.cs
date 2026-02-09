@@ -41,7 +41,6 @@ public class ServiceDependencyGraph
         });
 
         // AdGuard is independent (no dependencies)
-        // WireGuard is independent (no dependencies)
         // Node Exporter is independent (no dependencies)
     }
 

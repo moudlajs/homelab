@@ -180,8 +180,8 @@ public class UptimeKumaClient
             new()
             {
                 Id = 2,
-                Name = "WireGuard VPN",
-                Url = "http://localhost:51820",
+                Name = "Tailscale VPN",
+                Url = "http://localhost:41641",
                 Type = "port",
                 Status = MonitorStatus.Up,
                 UptimePercentage = 100m,

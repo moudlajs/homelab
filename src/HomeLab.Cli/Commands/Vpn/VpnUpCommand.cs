@@ -2,15 +2,15 @@ using HomeLab.Cli.Services.Abstractions;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace HomeLab.Cli.Commands.Tailscale;
+namespace HomeLab.Cli.Commands.Vpn;
 
-public class TailscaleUpCommand : AsyncCommand<TailscaleUpCommand.Settings>
+public class VpnUpCommand : AsyncCommand<VpnUpCommand.Settings>
 {
     private readonly IServiceClientFactory _clientFactory;
 
     public class Settings : CommandSettings { }
 
-    public TailscaleUpCommand(IServiceClientFactory clientFactory)
+    public VpnUpCommand(IServiceClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
     }
