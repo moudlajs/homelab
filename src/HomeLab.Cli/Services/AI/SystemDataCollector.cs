@@ -6,6 +6,7 @@ using HomeLab.Cli.Models.AI;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Network;
+using EventLogEntry = HomeLab.Cli.Models.EventLog.EventLogEntry;
 
 namespace HomeLab.Cli.Services.AI;
 
@@ -45,7 +46,7 @@ public class SystemDataCollector : ISystemDataCollector
         return snapshot;
     }
 
-    public string FormatAsPrompt(HomelabDataSnapshot snapshot)
+    public string FormatAsPrompt(HomelabDataSnapshot snapshot, List<EventLogEntry>? eventHistory = null)
     {
         var sb = new StringBuilder();
         sb.AppendLine("=== HOMELAB STATUS ===");
@@ -195,7 +196,142 @@ public class SystemDataCollector : ISystemDataCollector
             }
         }
 
+        // Event history for incident investigation
+        if (eventHistory != null && eventHistory.Count > 0)
+        {
+            sb.AppendLine();
+            AppendEventHistory(sb, eventHistory);
+        }
+
         return sb.ToString();
+    }
+
+    private static void AppendEventHistory(StringBuilder sb, List<EventLogEntry> events)
+    {
+        var first = events.First();
+        var last = events.Last();
+
+        sb.AppendLine("=== EVENT HISTORY ===");
+        sb.AppendLine($"Total snapshots: {events.Count}");
+        sb.AppendLine($"Period: {first.Timestamp:yyyy-MM-dd HH:mm} to {last.Timestamp:yyyy-MM-dd HH:mm} UTC");
+        sb.AppendLine();
+
+        // Detect gaps (> 10 min between entries)
+        var gaps = new List<(DateTime start, DateTime end)>();
+        for (var i = 1; i < events.Count; i++)
+        {
+            var gap = events[i].Timestamp - events[i - 1].Timestamp;
+            if (gap.TotalMinutes > 10)
+            {
+                gaps.Add((events[i - 1].Timestamp, events[i].Timestamp));
+            }
+        }
+
+        if (gaps.Count > 0)
+        {
+            sb.AppendLine($"Gaps detected ({gaps.Count}):");
+            foreach (var (start, end) in gaps.Take(10))
+            {
+                var duration = end - start;
+                sb.AppendLine($"  - {start:HH:mm} to {end:HH:mm} ({(int)duration.TotalMinutes} min) — possible sleep/outage");
+            }
+            sb.AppendLine();
+        }
+
+        // Power events
+        var powerEvents = events
+            .Where(e => e.Power?.RecentEvents.Count > 0)
+            .SelectMany(e => e.Power!.RecentEvents)
+            .OrderBy(e => e.Timestamp)
+            .ToList();
+
+        if (powerEvents.Count > 0)
+        {
+            sb.AppendLine($"Power events ({powerEvents.Count}):");
+            foreach (var pe in powerEvents.Take(20))
+            {
+                sb.AppendLine($"  - {pe.Timestamp:HH:mm} {pe.Type}");
+            }
+            sb.AppendLine();
+        }
+
+        // Tailscale connectivity summary
+        var tsConnected = events.Count(e => e.Tailscale?.IsConnected == true);
+        var tsTotal = events.Count(e => e.Tailscale != null);
+        if (tsTotal > 0)
+        {
+            var pct = (int)(100.0 * tsConnected / tsTotal);
+            var drops = 0;
+            for (var i = 1; i < events.Count; i++)
+            {
+                if (events[i - 1].Tailscale?.IsConnected == true && events[i].Tailscale?.IsConnected == false)
+                {
+                    drops++;
+                }
+            }
+            sb.AppendLine($"Tailscale: connected {pct}% of time, {drops} disconnection(s)");
+        }
+
+        // Docker changes
+        var dockerChanges = new List<string>();
+        for (var i = 1; i < events.Count; i++)
+        {
+            var prev = events[i - 1].Docker;
+            var curr = events[i].Docker;
+            if (prev?.Available != true || curr?.Available != true)
+            {
+                continue;
+            }
+
+            var prevNames = prev.Containers.Where(c => c.IsRunning).Select(c => c.Name).ToHashSet();
+            var currNames = curr.Containers.Where(c => c.IsRunning).Select(c => c.Name).ToHashSet();
+
+            var stopped = prevNames.Except(currNames).ToList();
+            var started = currNames.Except(prevNames).ToList();
+
+            foreach (var name in stopped)
+            {
+                dockerChanges.Add($"{events[i].Timestamp:HH:mm} {name} stopped");
+            }
+
+            foreach (var name in started)
+            {
+                dockerChanges.Add($"{events[i].Timestamp:HH:mm} {name} started");
+            }
+        }
+
+        if (dockerChanges.Count > 0)
+        {
+            sb.AppendLine($"Docker changes ({dockerChanges.Count}):");
+            foreach (var change in dockerChanges.Take(20))
+            {
+                sb.AppendLine($"  - {change}");
+            }
+        }
+
+        // Service health changes
+        var healthChanges = new List<string>();
+        for (var i = 1; i < events.Count; i++)
+        {
+            var prevServices = events[i - 1].Services.ToDictionary(s => s.Name, s => s.IsHealthy);
+            foreach (var svc in events[i].Services)
+            {
+                if (prevServices.TryGetValue(svc.Name, out var wasHealthy) && wasHealthy != svc.IsHealthy)
+                {
+                    var status = svc.IsHealthy ? "recovered" : "down";
+                    healthChanges.Add($"{events[i].Timestamp:HH:mm} {svc.Name} {status}");
+                }
+            }
+        }
+
+        if (healthChanges.Count > 0)
+        {
+            sb.AppendLine($"Service health changes ({healthChanges.Count}):");
+            foreach (var change in healthChanges.Take(20))
+            {
+                sb.AppendLine($"  - {change}");
+            }
+        }
     }
 
     private async Task<SystemMetrics> CollectSystemMetricsAsync(List<string> errors)

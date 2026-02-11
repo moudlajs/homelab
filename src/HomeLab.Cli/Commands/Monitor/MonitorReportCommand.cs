@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using HomeLab.Cli.Models.AI;
+using HomeLab.Cli.Models.EventLog;
 using HomeLab.Cli.Services.Abstractions;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -14,6 +15,7 @@ public class MonitorReportCommand : AsyncCommand<MonitorReportCommand.Settings>
 {
     private readonly ILlmService _llmService;
     private readonly ISystemDataCollector _dataCollector;
+    private readonly IEventLogService _eventLogService;
 
     public class Settings : CommandSettings
     {
@@ -22,10 +24,11 @@ public class MonitorReportCommand : AsyncCommand<MonitorReportCommand.Settings>
         public bool Raw { get; set; }
     }
 
-    public MonitorReportCommand(ILlmService llmService, ISystemDataCollector dataCollector)
+    public MonitorReportCommand(ILlmService llmService, ISystemDataCollector dataCollector, IEventLogService eventLogService)
     {
         _llmService = llmService;
         _dataCollector = dataCollector;
+        _eventLogService = eventLogService;
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -37,14 +40,21 @@ public class MonitorReportCommand : AsyncCommand<MonitorReportCommand.Settings>
 
         AnsiConsole.WriteLine();
 
-        // Collect data
+        // Collect data + event history in parallel
         HomelabDataSnapshot? snapshot = null;
+        List<EventLogEntry>? events = null;
 
         await AnsiConsole.Status()
             .StartAsync("Collecting homelab data...", async ctx =>
             {
                 ctx.Spinner(Spinner.Known.Dots);
-                snapshot = await _dataCollector.CollectAsync();
+                var snapshotTask = _dataCollector.CollectAsync();
+                var eventsTask = _eventLogService.ReadEventsAsync(since: DateTime.UtcNow.AddHours(-24));
+
+                await Task.WhenAll(snapshotTask, eventsTask);
+
+                snapshot = await snapshotTask;
+                events = await eventsTask;
             });
 
         if (snapshot == null)
@@ -53,7 +63,7 @@ public class MonitorReportCommand : AsyncCommand<MonitorReportCommand.Settings>
             return 1;
         }
 
-        var prompt = _dataCollector.FormatAsPrompt(snapshot);
+        var prompt = _dataCollector.FormatAsPrompt(snapshot, events?.Count > 0 ? events : null);
 
         // Raw mode: just show the collected data
         if (settings.Raw || !await _llmService.IsAvailableAsync())

@@ -135,7 +135,7 @@ public class ShellCommand : Command<ShellCommand.Settings>
         table.AddRow("", "");
 
         // Monitoring
-        table.AddRow("[cyan]monitor[/] report/ask/alerts/targets/dashboard", "AI monitoring & metrics");
+        table.AddRow("[cyan]monitor[/] report/ask/alerts/targets/dashboard/collect/history/schedule", "AI monitoring & metrics");
         table.AddRow("[cyan]vpn[/] status/up/down/devices", "VPN management (Tailscale)");
         table.AddRow("[cyan]network[/] scan/ports/devices/traffic/intrusion/status", "Network monitoring");
         table.AddRow("[cyan]dns[/] stats/blocked", "DNS & ad-blocking");
