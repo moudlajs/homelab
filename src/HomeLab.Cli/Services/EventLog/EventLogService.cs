@@ -11,9 +11,18 @@ namespace HomeLab.Cli.Services.EventLog;
 /// </summary>
 public class EventLogService : IEventLogService
 {
-    private static readonly string EventLogPath = Path.Combine(
+    private static readonly string DefaultLogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
         ".homelab", "events.jsonl");
+
+    private readonly string _logPath;
+
+    public EventLogService() : this(DefaultLogPath) { }
+
+    public EventLogService(string logPath)
+    {
+        _logPath = logPath;
+    }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -24,23 +33,23 @@ public class EventLogService : IEventLogService
 
     public async Task WriteEventAsync(EventLogEntry entry)
     {
-        var dir = Path.GetDirectoryName(EventLogPath)!;
+        var dir = Path.GetDirectoryName(_logPath)!;
         Directory.CreateDirectory(dir);
 
         var json = JsonSerializer.Serialize(entry, JsonOptions);
-        await File.AppendAllTextAsync(EventLogPath, json + Environment.NewLine);
+        await File.AppendAllTextAsync(_logPath, json + Environment.NewLine);
     }
 
     public async Task<List<EventLogEntry>> ReadEventsAsync(DateTime? since = null, DateTime? until = null)
     {
         var events = new List<EventLogEntry>();
 
-        if (!File.Exists(EventLogPath))
+        if (!File.Exists(_logPath))
         {
             return events;
         }
 
-        var lines = await File.ReadAllLinesAsync(EventLogPath);
+        var lines = await File.ReadAllLinesAsync(_logPath);
 
         foreach (var line in lines)
         {
@@ -80,13 +89,13 @@ public class EventLogService : IEventLogService
 
     public async Task CleanupAsync(int retentionDays = 7)
     {
-        if (!File.Exists(EventLogPath))
+        if (!File.Exists(_logPath))
         {
             return;
         }
 
         var cutoff = DateTime.UtcNow.AddDays(-retentionDays);
-        var lines = await File.ReadAllLinesAsync(EventLogPath);
+        var lines = await File.ReadAllLinesAsync(_logPath);
         var kept = new List<string>();
 
         foreach (var line in lines)
@@ -110,6 +119,6 @@ public class EventLogService : IEventLogService
             }
         }
 
-        await File.WriteAllLinesAsync(EventLogPath, kept);
+        await File.WriteAllLinesAsync(_logPath, kept);
     }
 }
