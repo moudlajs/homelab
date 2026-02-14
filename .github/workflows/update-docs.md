@@ -27,6 +27,7 @@ tools:
   # By default this workflow allows all bash commands within the confine of Github Actions VM 
   bash: [ ":*" ]
 
+engine: claude
 timeout-minutes: 15
 source: githubnext/agentics/workflows/update-docs.md@69b5e3ae5fa7f35fa555b0a22aee14c36ab57ebb
 ---
