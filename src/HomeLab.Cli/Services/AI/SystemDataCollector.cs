@@ -332,6 +332,78 @@ public class SystemDataCollector : ISystemDataCollector
                 sb.AppendLine($"  - {change}");
             }
         }
+
+        // Network device changes
+        var networkChanges = new List<string>();
+        for (var i = 1; i < events.Count; i++)
+        {
+            var prevDevices = events[i - 1].Network?.Devices?.Select(d => d.Ip).ToHashSet() ?? new HashSet<string>();
+            var currDevices = events[i].Network?.Devices ?? new List<Models.EventLog.DeviceBrief>();
+
+            foreach (var device in currDevices)
+            {
+                if (!prevDevices.Contains(device.Ip))
+                {
+                    var info = device.Hostname ?? device.Vendor ?? "unknown";
+                    networkChanges.Add($"{events[i].Timestamp:HH:mm} new device: {device.Ip} ({info})");
+                }
+            }
+
+            var currIps = currDevices.Select(d => d.Ip).ToHashSet();
+            foreach (var ip in prevDevices.Except(currIps))
+            {
+                networkChanges.Add($"{events[i].Timestamp:HH:mm} device left: {ip}");
+            }
+        }
+
+        if (networkChanges.Count > 0)
+        {
+            sb.AppendLine($"Network device changes ({networkChanges.Count}):");
+            foreach (var change in networkChanges.Take(20))
+            {
+                sb.AppendLine($"  - {change}");
+            }
+
+            sb.AppendLine();
+        }
+
+        // Security events
+        var securityEvents = new List<string>();
+        foreach (var evt in events)
+        {
+            var sec = evt.Network?.Security;
+            if (sec == null || (sec.CriticalCount == 0 && sec.HighCount == 0))
+            {
+                continue;
+            }
+
+            securityEvents.Add($"{evt.Timestamp:HH:mm} {sec.CriticalCount}c/{sec.HighCount}h alerts");
+            foreach (var alert in sec.RecentAlerts.Take(3))
+            {
+                securityEvents.Add($"  [{alert.Severity}] {alert.Signature}: {alert.SourceIp} -> {alert.DestinationIp}");
+            }
+        }
+
+        if (securityEvents.Count > 0)
+        {
+            sb.AppendLine($"Security events:");
+            foreach (var evt in securityEvents.Take(20))
+            {
+                sb.AppendLine($"  - {evt}");
+            }
+
+            sb.AppendLine();
+        }
+
+        // Traffic trend
+        var trafficEntries = events
+            .Where(e => e.Network?.Traffic != null)
+            .Select(e => e.Network!.Traffic!.TotalBytes)
+            .ToList();
+        if (trafficEntries.Count > 0)
+        {
+            sb.AppendLine($"Traffic trend: min={FormatBytes(trafficEntries.Min())}, max={FormatBytes(trafficEntries.Max())}, avg={FormatBytes((long)trafficEntries.Average())}");
+        }
     }
 
     private async Task<SystemMetrics> CollectSystemMetricsAsync(List<string> errors)

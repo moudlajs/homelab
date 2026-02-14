@@ -237,20 +237,97 @@ public class EventCollector : IEventCollector
     {
         var snapshot = new NetworkSnapshot();
 
+        var nmapTask = CollectNmapDataAsync(snapshot, errors);
+        var ntopngTask = CollectNtopngDataAsync(snapshot, errors);
+        var suricataTask = CollectSuricataDataAsync(snapshot, errors);
+
+        await Task.WhenAll(nmapTask, ntopngTask, suricataTask);
+
+        return snapshot;
+    }
+
+    private async Task CollectNmapDataAsync(NetworkSnapshot snapshot, List<string> errors)
+    {
         try
         {
             if (_nmapService.IsNmapAvailable())
             {
                 var devices = await _nmapService.ScanNetworkAsync("192.168.1.0/24", quickScan: true);
                 snapshot.DeviceCount = devices.Count;
+                snapshot.Devices = devices.Select(d => new DeviceBrief
+                {
+                    Ip = d.IpAddress,
+                    Mac = d.MacAddress,
+                    Hostname = d.Hostname,
+                    Vendor = d.Vendor
+                }).ToList();
             }
         }
         catch (Exception ex)
         {
-            errors.Add($"Network: {ex.Message}");
+            errors.Add($"Network/nmap: {ex.Message}");
         }
+    }
 
-        return snapshot;
+    private async Task CollectNtopngDataAsync(NetworkSnapshot snapshot, List<string> errors)
+    {
+        try
+        {
+            var ntopng = _clientFactory.CreateNtopngClient();
+            if (await ntopng.IsHealthyAsync())
+            {
+                var stats = await ntopng.GetTrafficStatsAsync();
+                snapshot.Traffic = new TrafficSummary
+                {
+                    TotalBytes = stats.TotalBytesTransferred,
+                    ActiveFlows = stats.ActiveFlows,
+                    TopTalkers = stats.TopTalkers.Take(5).Select(t => new TopTalkerBrief
+                    {
+                        Ip = t.IpAddress,
+                        Name = t.DeviceName,
+                        TotalBytes = t.TotalBytes
+                    }).ToList()
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Network/ntopng: {ex.Message}");
+        }
+    }
+
+    private async Task CollectSuricataDataAsync(NetworkSnapshot snapshot, List<string> errors)
+    {
+        try
+        {
+            var suricata = _clientFactory.CreateSuricataClient();
+            if (await suricata.IsHealthyAsync())
+            {
+                var alerts = await suricata.GetAlertsAsync(limit: 100);
+                var recentAlerts = alerts
+                    .Where(a => a.Timestamp > DateTime.Now.AddMinutes(-10))
+                    .ToList();
+
+                snapshot.Security = new SecuritySummary
+                {
+                    TotalAlerts = recentAlerts.Count,
+                    CriticalCount = recentAlerts.Count(a => a.Severity == "critical"),
+                    HighCount = recentAlerts.Count(a => a.Severity == "high"),
+                    RecentAlerts = recentAlerts.Take(5).Select(a => new AlertBrief
+                    {
+                        Severity = a.Severity,
+                        Signature = a.Signature,
+                        SourceIp = a.SourceIp,
+                        DestinationIp = a.DestinationIp,
+                        Category = a.Category
+                    }).ToList()
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Network/suricata: {ex.Message}");
+        }
     }
 
     private async Task<List<ServiceHealthEntry>> CollectServiceHealthAsync(List<string> errors)

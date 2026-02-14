@@ -61,6 +61,57 @@ public class ContainerBrief
 public class NetworkSnapshot
 {
     public int DeviceCount { get; set; }
+    public List<DeviceBrief> Devices { get; set; } = new();
+    public TrafficSummary? Traffic { get; set; }
+    public SecuritySummary? Security { get; set; }
+}
+
+public class DeviceBrief
+{
+    public string Ip { get; set; } = string.Empty;
+    public string? Mac { get; set; }
+    public string? Hostname { get; set; }
+    public string? Vendor { get; set; }
+}
+
+public class TrafficSummary
+{
+    public long TotalBytes { get; set; }
+    public int ActiveFlows { get; set; }
+    public List<TopTalkerBrief> TopTalkers { get; set; } = new();
+}
+
+public class TopTalkerBrief
+{
+    public string Ip { get; set; } = string.Empty;
+    public string? Name { get; set; }
+    public long TotalBytes { get; set; }
+}
+
+public class SecuritySummary
+{
+    public int TotalAlerts { get; set; }
+    public int CriticalCount { get; set; }
+    public int HighCount { get; set; }
+    public List<AlertBrief> RecentAlerts { get; set; } = new();
+}
+
+public class AlertBrief
+{
+    public string Severity { get; set; } = string.Empty;
+    public string Signature { get; set; } = string.Empty;
+    public string SourceIp { get; set; } = string.Empty;
+    public string DestinationIp { get; set; } = string.Empty;
+    public string? Category { get; set; }
+}
+
+public class NetworkAnomaly
+{
+    public DateTime Timestamp { get; set; }
+    public string Type { get; set; } = string.Empty;
+    public string Severity { get; set; } = "info";
+    public string Description { get; set; } = string.Empty;
+    public Dictionary<string, string> Details { get; set; } = new();
 }
 
 public class ServiceHealthEntry

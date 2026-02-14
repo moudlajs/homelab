@@ -77,6 +77,7 @@ public static class Program
 
         // Network monitoring services
         services.AddSingleton<INmapService, NmapService>();
+        services.AddSingleton<INetworkAnomalyDetector, NetworkAnomalyDetector>();
 
         // TV control services
         services.AddSingleton<IWakeOnLanService, WakeOnLanService>();
@@ -289,6 +290,9 @@ public static class Program
             network.AddCommand<NetworkStatusCommand>("status")
                 .WithAlias("st")
                 .WithDescription("Comprehensive network health overview");
+            network.AddCommand<NetworkAnalyzeCommand>("analyze")
+                .WithAlias("ai")
+                .WithDescription("Analyze network trends and detect anomalies");
         });
 
         // TV Control - LG WebOS Smart TV
