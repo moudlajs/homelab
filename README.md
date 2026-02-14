@@ -159,7 +159,3 @@ make install                                          # Build + install + codesi
 ## License
 
 MIT License - see [LICENSE](LICENSE).
-
----
-
-Built with [Claude Code](https://claude.com/claude-code)
