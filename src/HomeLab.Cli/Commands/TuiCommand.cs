@@ -446,6 +446,7 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
             > 70 => "yellow",
             _ => "green"
         };
-        return $" {label,-4} [{color}][{new string('=', filled)}{new string('-', empty)}][/] {percent:F0}%";
+        var bar = $"[[{new string('=', filled)}{new string('-', empty)}]]";
+        return $" {label,-4} [{color}]{bar}[/] {percent:F0}%";
     }
 }
