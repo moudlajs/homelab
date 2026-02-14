@@ -3,7 +3,6 @@ using HomeLab.Cli.Models;
 using HomeLab.Cli.Models.EventLog;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Docker;
-using HomeLab.Cli.Services.Health;
 using HomeLab.Cli.Services.Network;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -17,7 +16,6 @@ namespace HomeLab.Cli.Commands;
 public class TuiCommand : AsyncCommand<TuiCommand.Settings>
 {
     private readonly IDockerService _dockerService;
-    private readonly IServiceHealthCheckService _healthCheckService;
     private readonly IEventLogService _eventLogService;
     private readonly INetworkAnomalyDetector _anomalyDetector;
     private bool _shouldExit;
@@ -36,12 +34,10 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
 
     public TuiCommand(
         IDockerService dockerService,
-        IServiceHealthCheckService healthCheckService,
         IEventLogService eventLogService,
         INetworkAnomalyDetector anomalyDetector)
     {
         _dockerService = dockerService;
-        _healthCheckService = healthCheckService;
         _eventLogService = eventLogService;
         _anomalyDetector = anomalyDetector;
     }
@@ -54,7 +50,7 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
             _shouldExit = true;
         };
 
-        await AnsiConsole.Live(CreateEmptyLayout())
+        await AnsiConsole.Live(new Markup("[dim]Loading dashboard...[/]"))
             .AutoClear(true)
             .StartAsync(async ctx =>
             {
@@ -62,13 +58,13 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
                 {
                     try
                     {
-                        var layout = await CreateDashboard(settings.RefreshInterval);
-                        ctx.UpdateTarget(layout);
+                        var dashboard = await BuildDashboard(settings.RefreshInterval);
+                        ctx.UpdateTarget(dashboard);
                         await Task.Delay(TimeSpan.FromSeconds(settings.RefreshInterval));
                     }
                     catch (Exception ex)
                     {
-                        AnsiConsole.MarkupLine($"[red]Error: {Markup.Escape(ex.Message)}[/]");
+                        ctx.UpdateTarget(new Markup($"[red]Error: {Markup.Escape(ex.Message)}[/]"));
                         await Task.Delay(TimeSpan.FromSeconds(settings.RefreshInterval));
                     }
                 }
@@ -78,58 +74,56 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
         return 0;
     }
 
-    private static Layout CreateEmptyLayout()
-    {
-        return new Layout("Root")
-            .SplitRows(
-                new Layout("Header").Size(3),
-                new Layout("Body"),
-                new Layout("Bottom").Size(5),
-                new Layout("Footer").Size(3));
-    }
-
-    private async Task<Layout> CreateDashboard(int refreshInterval)
+    private async Task<Rows> BuildDashboard(int refreshInterval)
     {
         // Fetch all data in parallel
-        var healthTask = _healthCheckService.CheckAllServicesAsync();
         var containersTask = SafeGetContainers();
         var latestEventTask = GetLatestEventAsync();
         var anomaliesTask = GetCachedAnomaliesAsync();
 
-        await Task.WhenAll(healthTask, containersTask, latestEventTask, anomaliesTask);
+        await Task.WhenAll(containersTask, latestEventTask, anomaliesTask);
 
-        var healthResults = await healthTask;
         var containers = await containersTask;
         var latest = await latestEventTask;
         var anomalies = await anomaliesTask;
 
-        // Build all panels
-        var header = BuildHeaderPanel(latest);
-        var servicesTable = BuildServicesTable(healthResults, containers);
-        var systemPanel = BuildSystemGaugesPanel(latest);
-        var networkPanel = BuildNetworkVpnPanel(latest);
-        var containerPanel = BuildContainersPanel(containers);
-        var summaryPanel = BuildSummaryPanel(healthResults, latest);
-        var anomalyPanel = BuildAnomaliesPanel(anomalies);
-        var footer = BuildFooterPanel(latest, refreshInterval);
+        // Header
+        var uptime = latest?.System?.Uptime;
+        var uptimeText = !string.IsNullOrEmpty(uptime) ? $" | up {uptime}" : "";
+        var header = new Rule($"[bold green]HomeLab Dashboard[/] [dim]| {DateTime.Now:HH:mm:ss}{uptimeText}[/]")
+        {
+            Justification = Justify.Center,
+            Style = Style.Parse("green")
+        };
 
-        return new Layout("Root")
-            .SplitRows(
-                new Layout("Header").Size(3).Update(header),
-                new Layout("Body").SplitColumns(
-                    new Layout("Left").Update(servicesTable),
-                    new Layout("Right").Size(45).SplitRows(
-                        new Layout("SystemGauges").Size(7).Update(systemPanel),
-                        new Layout("NetworkVpn").Size(8).Update(networkPanel),
-                        new Layout("Containers").Update(containerPanel)
-                    )
-                ),
-                new Layout("Bottom").Size(5).SplitColumns(
-                    new Layout("Summary").Update(summaryPanel),
-                    new Layout("Anomalies").Update(anomalyPanel)
-                ),
-                new Layout("Footer").Size(3).Update(footer)
-            );
+        // Build panels side by side: left column + right column
+        var leftPanels = new Rows(
+            BuildSystemGaugesPanel(latest),
+            BuildNetworkVpnPanel(latest));
+
+        var rightPanels = new Rows(
+            BuildContainersPanel(containers),
+            BuildAnomaliesPanel(anomalies));
+
+        var columns = new Columns(leftPanels, rightPanels);
+
+        // Footer
+        var collectedText = "";
+        if (latest != null)
+        {
+            var age = DateTime.UtcNow - latest.Timestamp;
+            var ageText = age.TotalMinutes < 1 ? "just now" : $"{age.TotalMinutes:F0}m ago";
+            var ageColor = age.TotalMinutes > 15 ? "yellow" : "dim";
+            collectedText = $"[{ageColor}]Last collected: {ageText}[/] | ";
+        }
+
+        var footer = new Rule($"[dim]{collectedText}Refresh: {refreshInterval}s | [yellow]Ctrl+C[/] to exit[/]")
+        {
+            Justification = Justify.Center,
+            Style = Style.Parse("grey")
+        };
+
+        return new Rows(header, new Text(""), columns, new Text(""), footer);
     }
 
     private async Task<EventLogEntry?> GetLatestEventAsync()
@@ -182,67 +176,6 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
 
     // --- Panel Builders ---
 
-    private static Panel BuildHeaderPanel(EventLogEntry? latest)
-    {
-        var uptime = latest?.System?.Uptime;
-        var uptimeText = !string.IsNullOrEmpty(uptime) ? $" [dim]|[/] up {uptime}" : "";
-
-        return new Panel(
-            Align.Center(
-                new Markup($"[bold green]HomeLab Dashboard[/] [dim]|[/] {DateTime.Now:HH:mm:ss}{uptimeText} [dim]|[/] [yellow]Ctrl+C[/] to exit"),
-                VerticalAlignment.Middle))
-            .BorderColor(Color.Green)
-            .Padding(0, 0);
-    }
-
-    private static Table BuildServicesTable(
-        List<ServiceHealthResult> healthResults,
-        List<ContainerInfo> containers)
-    {
-        var table = new Table()
-            .Border(TableBorder.Rounded)
-            .BorderColor(Color.Grey)
-            .AddColumn(new TableColumn("[yellow]Service[/]"))
-            .AddColumn(new TableColumn("[yellow]Docker[/]").Centered())
-            .AddColumn(new TableColumn("[yellow]Health[/]").Centered())
-            .AddColumn(new TableColumn("[yellow]Uptime[/]").Centered());
-
-        // Build container lookup for uptime
-        var containerByName = containers
-            .ToDictionary(c => c.Name.TrimStart('/').ToLowerInvariant(), c => c);
-
-        foreach (var result in healthResults)
-        {
-            var dockerStatus = result.IsRunning
-                ? "[green]Running[/]"
-                : "[red]Stopped[/]";
-
-            var healthStatus = result.IsHealthy
-                ? "[green]Healthy[/]"
-                : "[red]Down[/]";
-
-            // Try to find container uptime by matching names
-            var uptime = "-";
-            var key = result.ServiceName.ToLowerInvariant();
-            if (containerByName.TryGetValue(key, out var container) ||
-                containerByName.TryGetValue($"homelab_{key}", out container))
-            {
-                if (container.IsRunning && container.Uptime != "N/A")
-                {
-                    uptime = container.Uptime;
-                }
-            }
-
-            table.AddRow(
-                Markup.Escape(result.ServiceName),
-                dockerStatus,
-                healthStatus,
-                uptime);
-        }
-
-        return table;
-    }
-
     private static Panel BuildSystemGaugesPanel(EventLogEntry? latest)
     {
         if (latest?.System == null)
@@ -250,6 +183,7 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
             return new Panel(new Markup("[dim]No event data — run monitor collect[/]"))
                 .Header("[cyan]System[/]")
                 .BorderColor(Color.Cyan)
+                .Expand()
                 .Padding(1, 0);
         }
 
@@ -264,6 +198,7 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
         return new Panel(new Markup(string.Join("\n", lines)))
             .Header("[cyan]System[/]")
             .BorderColor(Color.Cyan)
+            .Expand()
             .Padding(1, 0);
     }
 
@@ -277,47 +212,54 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
         {
             var vpnColor = ts.IsConnected ? "green" : "red";
             var vpnState = ts.IsConnected ? "Connected" : ts.BackendState;
-            lines.Add($"[{vpnColor}]VPN[/]   {vpnState}  {ts.OnlinePeerCount}/{ts.PeerCount} peers");
+            lines.Add($"[{vpnColor}]VPN[/]  {vpnState}  {ts.OnlinePeerCount}/{ts.PeerCount} peers");
             if (ts.SelfIp != null)
             {
-                lines.Add($"[dim]       {ts.SelfIp}[/]");
+                lines.Add($"[dim]      {ts.SelfIp}[/]");
             }
         }
         else
         {
-            lines.Add("[dim]VPN   n/a[/]");
+            lines.Add("[dim]VPN  n/a[/]");
         }
+
+        lines.Add("");
 
         // Network section
         var net = latest?.Network;
         if (net != null)
         {
-            var deviceText = $"Devices: {net.DeviceCount}";
-            var trafficText = net.Traffic != null
-                ? $"Traffic: {NetworkAnomalyDetector.FormatBytes(net.Traffic.TotalBytes)}"
-                : "Traffic: n/a";
+            lines.Add($"[blue]Net[/]  Devices: {net.DeviceCount}");
 
-            lines.Add($"[blue]Net[/]   {deviceText}  |  {trafficText}");
+            if (net.Traffic != null)
+            {
+                lines.Add($"      Traffic: {NetworkAnomalyDetector.FormatBytes(net.Traffic.TotalBytes)}");
+            }
+            else
+            {
+                lines.Add("[dim]      Traffic: n/a[/]");
+            }
 
             var sec = net.Security;
             if (sec != null && sec.TotalAlerts > 0)
             {
                 var alertColor = sec.CriticalCount > 0 ? "red" : "yellow";
-                lines.Add($"[{alertColor}]       Alerts: {sec.TotalAlerts} ({sec.CriticalCount}c/{sec.HighCount}h)[/]");
+                lines.Add($"[{alertColor}]      Alerts: {sec.TotalAlerts} ({sec.CriticalCount}c/{sec.HighCount}h)[/]");
             }
             else
             {
-                lines.Add("[dim]       Alerts: 0[/]");
+                lines.Add("[dim]      Alerts: 0[/]");
             }
         }
         else
         {
-            lines.Add("[dim]Net   n/a[/]");
+            lines.Add("[dim]Net  n/a[/]");
         }
 
         return new Panel(new Markup(string.Join("\n", lines)))
             .Header("[blue]Network & VPN[/]")
             .BorderColor(Color.Blue)
+            .Expand()
             .Padding(1, 0);
     }
 
@@ -328,54 +270,36 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
             return new Panel(new Markup("[dim]Docker unavailable[/]"))
                 .Header("[green]Containers[/]")
                 .BorderColor(Color.Green)
+                .Expand()
                 .Padding(1, 0);
         }
 
-        var lines = new List<string>();
-        foreach (var c in containers.Take(10))
+        var running = containers.Count(c => c.IsRunning);
+        var total = containers.Count;
+
+        var lines = new List<string>
+        {
+            $"[green]{running}[/]/{total} running",
+            ""
+        };
+
+        foreach (var c in containers.OrderByDescending(c => c.IsRunning).Take(12))
         {
             var icon = c.IsRunning ? "[green]>[/]" : "[red]x[/]";
             var name = Markup.Escape(c.Name.TrimStart('/'));
             var uptime = c.IsRunning && c.Uptime != "N/A" ? $"[dim]{c.Uptime}[/]" : "";
-            lines.Add($"{icon} {name,-25} {uptime}");
+            lines.Add($" {icon} {name,-28} {uptime}");
         }
 
-        if (containers.Count > 10)
+        if (containers.Count > 12)
         {
-            lines.Add($"[dim]  ... +{containers.Count - 10} more[/]");
+            lines.Add($"[dim]   ... +{containers.Count - 12} more[/]");
         }
 
         return new Panel(new Markup(string.Join("\n", lines)))
             .Header("[green]Containers[/]")
             .BorderColor(Color.Green)
-            .Padding(1, 0);
-    }
-
-    private static Panel BuildSummaryPanel(
-        List<ServiceHealthResult> healthResults,
-        EventLogEntry? latest)
-    {
-        var total = healthResults.Count;
-        var healthy = healthResults.Count(r => r.IsHealthy);
-        var running = healthResults.Count(r => r.IsRunning);
-
-        var parts = new List<string>
-        {
-            $"[green]Healthy:[/] {healthy}/{total}",
-            $"[blue]Running:[/] {running}/{total}"
-        };
-
-        if (latest != null)
-        {
-            var age = DateTime.UtcNow - latest.Timestamp;
-            var ageText = age.TotalMinutes < 1 ? "just now" : $"{age.TotalMinutes:F0}m ago";
-            var ageColor = age.TotalMinutes > 15 ? "yellow" : "dim";
-            parts.Add($"[{ageColor}]Collected: {ageText}[/]");
-        }
-
-        return new Panel(new Markup(string.Join("  |  ", parts)))
-            .Header("[yellow]Summary[/]")
-            .BorderColor(Color.Yellow)
+            .Expand()
             .Padding(1, 0);
     }
 
@@ -386,12 +310,13 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
             return new Panel(new Markup("[green]No anomalies in last hour[/]"))
                 .Header("[yellow]Anomalies[/]")
                 .BorderColor(Color.Yellow)
+                .Expand()
                 .Padding(1, 0);
         }
 
         var lines = anomalies
             .OrderByDescending(a => a.Timestamp)
-            .Take(3)
+            .Take(5)
             .Select(a =>
             {
                 var color = a.Severity switch
@@ -405,32 +330,16 @@ public class TuiCommand : AsyncCommand<TuiCommand.Settings>
             })
             .ToList();
 
-        if (anomalies.Count > 3)
+        if (anomalies.Count > 5)
         {
-            lines.Add($"[dim]  +{anomalies.Count - 3} more[/]");
+            lines.Add($"[dim]  +{anomalies.Count - 5} more[/]");
         }
 
         return new Panel(new Markup(string.Join("\n", lines)))
             .Header("[yellow]Anomalies[/]")
             .BorderColor(Color.Yellow)
+            .Expand()
             .Padding(1, 0);
-    }
-
-    private static Panel BuildFooterPanel(EventLogEntry? latest, int refreshInterval)
-    {
-        var collectedText = "";
-        if (latest != null)
-        {
-            var localTime = latest.Timestamp.ToLocalTime();
-            collectedText = $"Last collected: {localTime:HH:mm:ss} [dim]|[/] ";
-        }
-
-        return new Panel(
-            Align.Center(
-                new Markup($"[dim]{collectedText}Refresh: {refreshInterval}s [dim]|[/] [yellow]Ctrl+C[/] to exit[/]"),
-                VerticalAlignment.Middle))
-            .BorderColor(Color.Grey)
-            .Padding(0, 0);
     }
 
     // --- Helpers ---
