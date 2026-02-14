@@ -1,8 +1,8 @@
 using FluentAssertions;
 using HomeLab.Cli.Models.AI;
 using HomeLab.Cli.Models.EventLog;
-using HomeLab.Cli.Services.AI;
 using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.AI;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.Network;
 using Moq;
@@ -153,9 +153,15 @@ public class SystemDataCollectorEventHistoryTests
         {
             System = new SystemMetrics
             {
-                CpuCount = 8, CpuUsagePercent = 25,
-                TotalMemoryGB = 16, UsedMemoryGB = 8, MemoryUsagePercent = 50,
-                DiskTotal = "460Gi", DiskUsed = "110Gi", DiskAvailable = "350Gi", DiskUsagePercent = 24,
+                CpuCount = 8,
+                CpuUsagePercent = 25,
+                TotalMemoryGB = 16,
+                UsedMemoryGB = 8,
+                MemoryUsagePercent = 50,
+                DiskTotal = "460Gi",
+                DiskUsed = "110Gi",
+                DiskAvailable = "350Gi",
+                DiskUsagePercent = 24,
                 Uptime = "3 days"
             }
         };

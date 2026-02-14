@@ -14,9 +14,12 @@ public class MonitorScheduleCommand : Command<MonitorScheduleCommand.Settings>
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
         "Library", "LaunchAgents", "com.homelab.monitor.plist");
 
-    private static readonly string LogPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        ".homelab", "monitor-collect.log");
+    private const string ExternalDrivePath = "/Volumes/T9";
+
+    private static readonly string LogPath = Directory.Exists(ExternalDrivePath)
+        ? Path.Combine(ExternalDrivePath, ".homelab", "monitor-collect.log")
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".homelab", "monitor-collect.log");
 
     public class Settings : CommandSettings
     {
@@ -25,9 +28,9 @@ public class MonitorScheduleCommand : Command<MonitorScheduleCommand.Settings>
         public string Action { get; set; } = string.Empty;
 
         [CommandOption("--interval <SECONDS>")]
-        [Description("Collection interval in seconds (default: 300)")]
-        [DefaultValue(300)]
-        public int Interval { get; set; } = 300;
+        [Description("Collection interval in seconds (default: 600)")]
+        [DefaultValue(600)]
+        public int Interval { get; set; } = 600;
     }
 
     public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -125,7 +128,9 @@ public class MonitorScheduleCommand : Command<MonitorScheduleCommand.Settings>
         File.Delete(PlistPath);
 
         AnsiConsole.MarkupLine("[green]Monitor schedule uninstalled[/]");
-        AnsiConsole.MarkupLine("[dim]Event log preserved at ~/.homelab/events.jsonl[/]");
+
+        var eventsPath = ResolveEventsPath();
+        AnsiConsole.MarkupLine($"[dim]Event log preserved at {eventsPath}[/]");
 
         return 0;
     }
@@ -182,9 +187,7 @@ public class MonitorScheduleCommand : Command<MonitorScheduleCommand.Settings>
         }
 
         // Show event count
-        var eventsPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".homelab", "events.jsonl");
+        var eventsPath = ResolveEventsPath();
         if (File.Exists(eventsPath))
         {
             var lineCount = File.ReadLines(eventsPath).Count();
@@ -241,6 +244,14 @@ public class MonitorScheduleCommand : Command<MonitorScheduleCommand.Settings>
         }
 
         return null;
+    }
+
+    private static string ResolveEventsPath()
+    {
+        return Directory.Exists(ExternalDrivePath)
+            ? Path.Combine(ExternalDrivePath, ".homelab", "events.jsonl")
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".homelab", "events.jsonl");
     }
 
     private static int RunLaunchctl(string action, string plistPath)

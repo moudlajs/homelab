@@ -11,17 +11,31 @@ namespace HomeLab.Cli.Services.EventLog;
 /// </summary>
 public class EventLogService : IEventLogService
 {
-    private static readonly string DefaultLogPath = Path.Combine(
+    private const string ExternalDrivePath = "/Volumes/T9";
+
+    private static readonly string ExternalLogPath = Path.Combine(
+        ExternalDrivePath, ".homelab", "events.jsonl");
+
+    private static readonly string FallbackLogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
         ".homelab", "events.jsonl");
 
     private readonly string _logPath;
 
-    public EventLogService() : this(DefaultLogPath) { }
+    public string LogPath => _logPath;
+
+    public bool IsUsingExternalDrive => _logPath.StartsWith(ExternalDrivePath);
+
+    public EventLogService() : this(ResolveLogPath()) { }
 
     public EventLogService(string logPath)
     {
         _logPath = logPath;
+    }
+
+    private static string ResolveLogPath()
+    {
+        return Directory.Exists(ExternalDrivePath) ? ExternalLogPath : FallbackLogPath;
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
