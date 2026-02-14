@@ -2,8 +2,12 @@
 
 > Command-line tool for managing a Mac Mini M4 homelab. Docker, networking, VPN, TV, AI monitoring — all from the terminal.
 
-[![CI](https://github.com/moudlajs/homelab/actions/workflows/ci.yml/badge.svg)](https://github.com/moudlajs/homelab/actions)
+[![CI](https://github.com/moudlajs/homelab/actions/workflows/ci.yml/badge.svg)](https://github.com/moudlajs/homelab/actions/workflows/ci.yml)
+[![Release](https://github.com/moudlajs/homelab/actions/workflows/release.yml/badge.svg)](https://github.com/moudlajs/homelab/actions/workflows/release.yml)
+[![CodeQL](https://github.com/moudlajs/homelab/actions/workflows/codeql.yml/badge.svg)](https://github.com/moudlajs/homelab/actions/workflows/codeql.yml)
+[![Latest Release](https://img.shields.io/github/v/release/moudlajs/homelab)](https://github.com/moudlajs/homelab/releases/latest)
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/)
+[![Platform](https://img.shields.io/badge/platform-macOS%20ARM64-lightgrey)](https://github.com/moudlajs/homelab)
 
 ## Install
 
@@ -37,6 +41,9 @@ homelab cleanup [--volumes]             Docker resource cleanup
 ### AI Monitoring
 
 ```
+homelab monitor collect                 Capture event snapshot
+homelab monitor history [--last 24h]    Event timeline with change detection
+homelab monitor schedule install|uninstall  Periodic collection (10min)
 homelab monitor report [--raw]          AI health summary (Claude Haiku)
 homelab monitor ask "<question>"        Ask AI about your homelab
 homelab monitor alerts                  Prometheus alerts
@@ -44,7 +51,7 @@ homelab monitor targets                 Prometheus scrape targets
 homelab monitor dashboard               Grafana dashboards
 ```
 
-Collects system metrics, Docker state, Prometheus data, and network info — sends to Claude for analysis. ~$0.001/query. See [docs/AI_MONITORING.md](docs/AI_MONITORING.md).
+Collects system metrics, Docker state, Prometheus data, and network info — sends to Claude for analysis. ~$0.001/query. Event snapshots stored on external drive with 7-day retention.
 
 ### VPN (Tailscale)
 
@@ -64,9 +71,10 @@ homelab network devices                 ntopng tracked devices
 homelab network traffic                 Traffic statistics
 homelab network intrusion [--severity]  Suricata IDS alerts
 homelab network status                  Overall health dashboard
+homelab network analyze [--last] [--ai] Anomaly detection + AI analysis
 ```
 
-Requires `nmap` (`brew install nmap`). ntopng and Suricata run as Docker containers. See [docs/NETWORK_MONITORING.md](docs/NETWORK_MONITORING.md).
+Requires `nmap` (`brew install nmap`). ntopng and Suricata run as Docker containers. Anomaly detection: new devices, traffic spikes, IDS alerts.
 
 ### DNS (AdGuard Home)
 
@@ -97,7 +105,7 @@ homelab traefik status|routes|...       Traefik reverse proxy
 homelab uptime status|alerts|add|remove Uptime Kuma
 homelab speedtest run|stats             Speed testing
 homelab remote connect|list|status|...  Remote SSH management
-homelab tui                             Live terminal dashboard
+homelab dashboard                       Live terminal dashboard
 homelab self-update [--check]           Update CLI binary
 homelab version                         Version info
 homelab completion bash|zsh             Shell completion scripts
@@ -131,9 +139,9 @@ See [config/homelab-cli.yaml.example](config/homelab-cli.yaml.example) for full 
 ## Development
 
 ```bash
-dotnet build src/HomeLab.Cli/HomeLab.Cli.csproj     # Build
-dotnet format src/HomeLab.Cli/HomeLab.Cli.csproj     # Format
-dotnet test                                           # Tests
+make build                                            # Build
+make test                                             # Tests
+make install                                          # Build + install + codesign
 ```
 
 **Stack:** .NET 8, Spectre.Console, Docker.DotNet, SSH.NET, YamlDotNet
