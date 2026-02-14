@@ -5,6 +5,41 @@ All notable changes to the HomeLab CLI project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-02-14
+
+### Added - Enhanced Network Monitoring
+
+#### Network Anomaly Detection
+- **`homelab network analyze [--last 24h] [--ai]`** — analyze network history for anomalies
+- Detects new devices, device disappearances, traffic spikes (>3x rolling avg), security alert escalation, device count anomalies (>30% change)
+- Optional `--ai` flag sends analysis to Claude for AI-powered insights
+
+#### Enriched Event Snapshots
+- Periodic collector now gathers **ntopng traffic data** (bytes, flows, top talkers) and **Suricata IDS alerts** (severity counts, signatures) in parallel alongside nmap
+- Graceful degradation when ntopng/Suricata are offline
+
+#### Enhanced Monitor Output
+- `monitor history` — new Traffic and Alerts columns with severity-colored counts
+- `monitor collect` — network summary line (devices, traffic, alerts)
+- `monitor ask` / `monitor report` — AI prompts enriched with network device changes, security events, traffic trends
+
+### Changed - Infrastructure
+
+#### Event Log Storage
+- Event logs moved to external Samsung T9 drive (`/Volumes/T9/.homelab/events.jsonl`) with automatic fallback to `~/.homelab/`
+- Collection interval changed from 5min to 10min
+
+#### CI/CD
+- CodeQL analysis moved from `macos-latest` to `ubuntu-latest` for reliability
+
+### Added - Tests
+- 10 tests for NetworkAnomalyDetector (all detection rules + edge cases)
+- 14 tests for EventCollector
+- 9 tests for HomelabConfigService
+- 11 tests for ServiceHealthCheckService
+
+---
+
 ## [1.12.0] - 2026-02-09
 
 ### Changed - Codebase Cleanup & Redesign
