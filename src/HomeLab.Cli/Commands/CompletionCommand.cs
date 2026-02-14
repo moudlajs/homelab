@@ -59,7 +59,7 @@ _homelab_completions()
     local dns_commands=""stats st blocked bl""
 
     # Monitor subcommands
-    local monitor_commands=""report ai ask alerts al targets tg dashboard dash db""
+    local monitor_commands=""report ai ask alerts al targets tg dashboard dash db collect history hist schedule sched""
 
     # Remote subcommands
     local remote_commands=""connect list status sync remove""
@@ -212,7 +212,12 @@ _homelab() {
                         ""tg[Alias for targets]"" \
                         ""dashboard[Open Grafana dashboards]"" \
                         ""dash[Alias for dashboard]"" \
-                        ""db[Alias for dashboard]""
+                        ""db[Alias for dashboard]"" \
+                        ""collect[Collect and log event snapshot]"" \
+                        ""history[Show event timeline with gap detection]"" \
+                        ""hist[Alias for history]"" \
+                        ""schedule[Manage periodic collection]"" \
+                        ""sched[Alias for schedule]""
                     ;;
                 remote)
                     _values ""remote commands"" \

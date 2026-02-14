@@ -20,7 +20,7 @@ public class ShellCompletionHandler : IAutoCompleteHandler
         },
         ["vpn"] = new[] { "status", "up", "down", "devices" },
         ["dns"] = new[] { "stats", "blocked" },
-        ["monitor"] = new[] { "report", "ask", "alerts", "targets", "dashboard" },
+        ["monitor"] = new[] { "report", "ask", "alerts", "targets", "dashboard", "collect", "history", "schedule" },
         ["remote"] = new[] { "connect", "list", "status", "sync", "remove" },
         ["uptime"] = new[] { "status", "alerts", "add", "remove" },
         ["speedtest"] = new[] { "run", "stats" },

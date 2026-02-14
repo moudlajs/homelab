@@ -13,6 +13,7 @@ using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.AI;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Docker;
+using HomeLab.Cli.Services.EventLog;
 using HomeLab.Cli.Services.Health;
 using HomeLab.Cli.Services.Network;
 using HomeLab.Cli.Services.Output;
@@ -79,6 +80,10 @@ public static class Program
 
         // TV control services
         services.AddSingleton<IWakeOnLanService, WakeOnLanService>();
+
+        // Event log services
+        services.AddSingleton<IEventLogService, EventLogService>();
+        services.AddSingleton<IEventCollector, EventCollector>();
 
         var registrar = new TypeRegistrar(services);
         var app = new CommandApp(registrar);
@@ -179,6 +184,14 @@ public static class Program
                 .WithDescription("AI-powered homelab health summary");
             monitor.AddCommand<MonitorAskCommand>("ask")
                 .WithDescription("Ask AI about your homelab");
+            monitor.AddCommand<MonitorCollectCommand>("collect")
+                .WithDescription("Collect and log event snapshot");
+            monitor.AddCommand<MonitorHistoryCommand>("history")
+                .WithAlias("hist")
+                .WithDescription("Show event timeline with gap detection");
+            monitor.AddCommand<MonitorScheduleCommand>("schedule")
+                .WithAlias("sched")
+                .WithDescription("Manage periodic collection (LaunchAgent)");
         });
 
         // Phase 5 - Day 6: Remote Management

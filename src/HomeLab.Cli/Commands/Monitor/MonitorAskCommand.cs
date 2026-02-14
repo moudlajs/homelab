@@ -14,6 +14,7 @@ public class MonitorAskCommand : AsyncCommand<MonitorAskCommand.Settings>
 {
     private readonly ILlmService _llmService;
     private readonly ISystemDataCollector _dataCollector;
+    private readonly IEventLogService _eventLogService;
 
     public class Settings : CommandSettings
     {
@@ -22,10 +23,11 @@ public class MonitorAskCommand : AsyncCommand<MonitorAskCommand.Settings>
         public string Question { get; set; } = string.Empty;
     }
 
-    public MonitorAskCommand(ILlmService llmService, ISystemDataCollector dataCollector)
+    public MonitorAskCommand(ILlmService llmService, ISystemDataCollector dataCollector, IEventLogService eventLogService)
     {
         _llmService = llmService;
         _dataCollector = dataCollector;
+        _eventLogService = eventLogService;
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -40,15 +42,21 @@ public class MonitorAskCommand : AsyncCommand<MonitorAskCommand.Settings>
 
         AnsiConsole.MarkupLine($"[cyan]Question:[/] {Markup.Escape(settings.Question)}\n");
 
-        // Collect data
+        // Collect data + event history in parallel
         string prompt = string.Empty;
 
         await AnsiConsole.Status()
             .StartAsync("Collecting homelab data...", async ctx =>
             {
                 ctx.Spinner(Spinner.Known.Dots);
-                var snapshot = await _dataCollector.CollectAsync();
-                prompt = $"User question: {settings.Question}\n\n{_dataCollector.FormatAsPrompt(snapshot)}";
+                var snapshotTask = _dataCollector.CollectAsync();
+                var eventsTask = _eventLogService.ReadEventsAsync(since: DateTime.UtcNow.AddHours(-24));
+
+                await Task.WhenAll(snapshotTask, eventsTask);
+
+                var snapshot = await snapshotTask;
+                var events = await eventsTask;
+                prompt = $"User question: {settings.Question}\n\n{_dataCollector.FormatAsPrompt(snapshot, events.Count > 0 ? events : null)}";
             });
 
         // Send to AI
