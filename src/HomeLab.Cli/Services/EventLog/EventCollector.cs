@@ -146,8 +146,9 @@ public class EventCollector : IEventCollector
 
             foreach (var line in lines)
             {
-                // Match patterns like: "2026-02-10 14:30:00 +0100 Sleep" or "Wake" or "DarkWake"
-                var match = Regex.Match(line, @"(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+[+-]\d{4}\s+.*(Sleep|Wake|DarkWake)\s");
+                // Match actual sleep/wake transitions only (not assertions containing "PreventSleep" etc.)
+                // Real entries: "2026-02-10 14:30:00 +0100 Sleep  Entering Sleep..."
+                var match = Regex.Match(line, @"(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+[+-]\d{4}\s+(Sleep|Wake|DarkWake)\s");
                 if (!match.Success)
                 {
                     continue;
