@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using HomeLab.Cli.Models.EventLog;
 using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.EventLog;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -30,6 +31,12 @@ public class MonitorCollectCommand : AsyncCommand<MonitorCollectCommand.Settings
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
+        // Warn if external drive is not available
+        if (!settings.Quiet && _logService is EventLogService els && !els.IsUsingExternalDrive)
+        {
+            AnsiConsole.MarkupLine("[yellow]External drive not mounted — writing to ~/.homelab/events.jsonl[/]");
+        }
+
         EventLogEntry? entry = null;
 
         if (!settings.Quiet)

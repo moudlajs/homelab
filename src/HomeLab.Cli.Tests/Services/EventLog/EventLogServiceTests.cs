@@ -143,12 +143,17 @@ public class EventLogServiceTests : IDisposable
             },
             Tailscale = new TailscaleSnapshot
             {
-                IsConnected = true, BackendState = "Running",
-                SelfIp = "100.126.50.127", PeerCount = 3, OnlinePeerCount = 2
+                IsConnected = true,
+                BackendState = "Running",
+                SelfIp = "100.126.50.127",
+                PeerCount = 3,
+                OnlinePeerCount = 2
             },
             Docker = new DockerSnapshot
             {
-                Available = true, RunningCount = 5, TotalCount = 7,
+                Available = true,
+                RunningCount = 5,
+                TotalCount = 7,
                 Containers = new List<ContainerBrief>
                 {
                     new() { Name = "prometheus", IsRunning = true },
