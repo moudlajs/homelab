@@ -87,6 +87,22 @@ public class MonitorCollectCommand : AsyncCommand<MonitorCollectCommand.Settings
                 AnsiConsole.MarkupLine($"  Docker: {entry.Docker.RunningCount}/{entry.Docker.TotalCount} containers running");
             }
 
+            if (entry.Network != null)
+            {
+                var netParts = new List<string> { $"Devices: {entry.Network.DeviceCount}" };
+                if (entry.Network.Traffic != null)
+                {
+                    netParts.Add($"Traffic: {FormatBytes(entry.Network.Traffic.TotalBytes)}");
+                }
+
+                if (entry.Network.Security != null && entry.Network.Security.TotalAlerts > 0)
+                {
+                    netParts.Add($"Alerts: {entry.Network.Security.TotalAlerts} ({entry.Network.Security.CriticalCount}c/{entry.Network.Security.HighCount}h)");
+                }
+
+                AnsiConsole.MarkupLine($"  Network: {string.Join(" | ", netParts)}");
+            }
+
             if (entry.Errors.Count > 0)
             {
                 AnsiConsole.MarkupLine($"  [yellow]Warnings: {entry.Errors.Count}[/]");
@@ -98,5 +114,19 @@ public class MonitorCollectCommand : AsyncCommand<MonitorCollectCommand.Settings
         }
 
         return 0;
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] sizes = ["B", "KB", "MB", "GB", "TB"];
+        double len = bytes;
+        var order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len /= 1024;
+        }
+
+        return $"{len:0.#} {sizes[order]}";
     }
 }

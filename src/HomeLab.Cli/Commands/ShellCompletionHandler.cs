@@ -26,7 +26,7 @@ public class ShellCompletionHandler : IAutoCompleteHandler
         ["speedtest"] = new[] { "run", "stats" },
         ["ha"] = new[] { "status", "control", "get", "list" },
         ["traefik"] = new[] { "status", "routes", "services", "middlewares" },
-        ["network"] = new[] { "scan", "ports", "devices", "traffic", "intrusion", "status" },
+        ["network"] = new[] { "scan", "ports", "devices", "traffic", "intrusion", "status", "analyze" },
         ["tv"] = new[] { "status", "on", "off", "setup", "apps", "launch", "key", "debug" }
     };
 

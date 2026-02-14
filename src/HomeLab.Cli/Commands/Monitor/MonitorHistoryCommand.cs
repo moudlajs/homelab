@@ -50,6 +50,8 @@ public class MonitorHistoryCommand : AsyncCommand<MonitorHistoryCommand.Settings
         table.AddColumn("[yellow]Tailscale[/]");
         table.AddColumn("[yellow]Power[/]");
         table.AddColumn("[yellow]Devices[/]");
+        table.AddColumn("[yellow]Traffic[/]");
+        table.AddColumn("[yellow]Alerts[/]");
         table.AddColumn("[yellow]Issues[/]");
 
         var gapCount = 0;
@@ -71,7 +73,7 @@ public class MonitorHistoryCommand : AsyncCommand<MonitorHistoryCommand.Settings
                     var gapText = FormatTimeSpan(gap);
                     table.AddRow(
                         $"[red]--- GAP: {gapText} ---[/]",
-                        "", "", "", "", "", "", "");
+                        "", "", "", "", "", "", "", "", "");
                 }
             }
 
@@ -137,6 +139,12 @@ public class MonitorHistoryCommand : AsyncCommand<MonitorHistoryCommand.Settings
                 ? $"{evt.Docker.RunningCount}/{evt.Docker.TotalCount}"
                 : "[dim]n/a[/]";
 
+            var trafficText = evt.Network?.Traffic != null
+                ? FormatBytes(evt.Network.Traffic.TotalBytes)
+                : "[dim]n/a[/]";
+
+            var alertText = FormatAlertColumn(evt.Network?.Security);
+
             table.AddRow(
                 evt.Timestamp.ToLocalTime().ToString("MM-dd HH:mm"),
                 $"{evt.System?.CpuPercent ?? 0}",
@@ -145,6 +153,8 @@ public class MonitorHistoryCommand : AsyncCommand<MonitorHistoryCommand.Settings
                 $"[{tsColor}]{Markup.Escape(tsState)}[/]",
                 Markup.Escape(powerText),
                 $"{evt.Network?.DeviceCount ?? 0}",
+                trafficText,
+                alertText,
                 issues.Count > 0 ? string.Join(", ", issues) : "[green]OK[/]");
 
             prev = evt;
@@ -154,7 +164,9 @@ public class MonitorHistoryCommand : AsyncCommand<MonitorHistoryCommand.Settings
 
         // Summary footer
         AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine($"[dim]Entries: {events.Count} | Gaps: {gapCount} | Sleep/Wake: {sleepWakeCount} | Container changes: {containerChanges} | Tailscale drops: {tailscaleDrops}[/]");
+        var totalAlerts = events.Sum(e => e.Network?.Security?.TotalAlerts ?? 0);
+        var alertSummary = totalAlerts > 0 ? $" | Security alerts: {totalAlerts}" : "";
+        AnsiConsole.MarkupLine($"[dim]Entries: {events.Count} | Gaps: {gapCount} | Sleep/Wake: {sleepWakeCount} | Container changes: {containerChanges} | Tailscale drops: {tailscaleDrops}{alertSummary}[/]");
 
         return 0;
     }
@@ -210,12 +222,67 @@ public class MonitorHistoryCommand : AsyncCommand<MonitorHistoryCommand.Settings
             return true;
         }
 
+        // Traffic change > 50%
+        var prevBytes = prev.Network?.Traffic?.TotalBytes ?? 0;
+        var currBytes = curr.Network?.Traffic?.TotalBytes ?? 0;
+        if (prevBytes > 0 && currBytes > 0 && Math.Abs(currBytes - prevBytes) > prevBytes * 0.5)
+        {
+            return true;
+        }
+
+        // New security alerts
+        if ((curr.Network?.Security?.TotalAlerts ?? 0) > 0 && (prev.Network?.Security?.TotalAlerts ?? 0) == 0)
+        {
+            return true;
+        }
+
         if (curr.Errors.Count > 0 && prev.Errors.Count == 0)
         {
             return true;
         }
 
         return false;
+    }
+
+    private static string FormatAlertColumn(Models.EventLog.SecuritySummary? security)
+    {
+        if (security == null || security.TotalAlerts == 0)
+        {
+            return "[dim]0[/]";
+        }
+
+        var parts = new List<string>();
+        if (security.CriticalCount > 0)
+        {
+            parts.Add($"[red]{security.CriticalCount}c[/]");
+        }
+
+        if (security.HighCount > 0)
+        {
+            parts.Add($"[yellow]{security.HighCount}h[/]");
+        }
+
+        var other = security.TotalAlerts - security.CriticalCount - security.HighCount;
+        if (other > 0)
+        {
+            parts.Add($"{other}");
+        }
+
+        return string.Join(" ", parts);
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] sizes = ["B", "KB", "MB", "GB", "TB"];
+        double len = bytes;
+        var order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len /= 1024;
+        }
+
+        return $"{len:0.#} {sizes[order]}";
     }
 
     private static string FormatTimeSpan(TimeSpan ts)
