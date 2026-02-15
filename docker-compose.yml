@@ -62,7 +62,7 @@ services:
       - NET_ADMIN
     volumes:
       - ./data/ntopng:/var/lib/ntopng
-    command: --community --http-port 3002
+    command: --community --http-port 3002 --disable-login 1
 
   suricata:
     image: jasonish/suricata:latest

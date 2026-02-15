@@ -84,48 +84,59 @@ public class NtopngClient : INtopngClient
     {
         try
         {
-            // ntopng REST API endpoint for hosts
-            // This is a simplified version - real ntopng API may require ifid parameter
-            var response = await _httpClient.GetAsync($"{_baseUrl}/lua/rest/v2/get/host/active.lua?ifid=0");
+            // Discover the first non-loopback interface
+            var ifid = await GetActiveInterfaceIdAsync();
+
+            var response = await _httpClient.GetAsync($"{_baseUrl}/lua/rest/v2/get/host/active.lua?ifid={ifid}");
 
             if (!response.IsSuccessStatusCode)
             {
                 throw new HttpRequestException($"ntopng API returned {response.StatusCode}");
             }
 
-            // Parse response - ntopng returns complex nested JSON
-            // This is simplified - actual ntopng response structure may vary
-            var data = await response.Content.ReadFromJsonAsync<NtopngHostsResponse>();
+            var data = await response.Content.ReadFromJsonAsync<NtopngApiResponse<NtopngHostsPage>>();
+            var hosts = data?.Rsp?.Data;
 
-            if (data?.Hosts == null)
+            if (hosts == null || hosts.Count == 0)
             {
                 return new List<DeviceTraffic>();
             }
 
-            var devices = new List<DeviceTraffic>();
-
-            foreach (var host in data.Hosts)
+            return hosts.Select(host => new DeviceTraffic
             {
-                devices.Add(new DeviceTraffic
-                {
-                    DeviceName = host.Name ?? host.Ip,
-                    IpAddress = host.Ip,
-                    MacAddress = host.Mac ?? string.Empty,
-                    FirstSeen = DateTimeOffset.FromUnixTimeSeconds(host.FirstSeen).DateTime,
-                    LastSeen = DateTimeOffset.FromUnixTimeSeconds(host.LastSeen).DateTime,
-                    BytesSent = host.BytesSent,
-                    BytesReceived = host.BytesReceived,
-                    ThroughputBps = host.Throughput,
-                    Os = host.Os,
-                    IsActive = host.IsActive
-                });
-            }
-
-            return devices;
+                DeviceName = host.Name ?? host.Ip,
+                IpAddress = host.Ip,
+                MacAddress = host.Mac ?? string.Empty,
+                FirstSeen = DateTimeOffset.FromUnixTimeSeconds(host.FirstSeen).DateTime,
+                LastSeen = DateTimeOffset.FromUnixTimeSeconds(host.LastSeen).DateTime,
+                BytesSent = host.Bytes?.Sent ?? 0,
+                BytesReceived = host.Bytes?.Recvd ?? 0,
+                ThroughputBps = (long?)(host.Thpt?.Bps),
+                Os = host.Os?.ToString(),
+                IsActive = host.NumFlows?.Total > 0
+            }).ToList();
         }
         catch (Exception ex)
         {
             throw new InvalidOperationException($"Failed to get devices from ntopng: {ex.Message}", ex);
+        }
+    }
+
+    private async Task<int> GetActiveInterfaceIdAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"{_baseUrl}/lua/rest/v2/get/ntopng/interfaces.lua");
+            if (!response.IsSuccessStatusCode) return 2;
+
+            var data = await response.Content.ReadFromJsonAsync<NtopngApiResponse<List<NtopngInterface>>>();
+            // Pick first non-loopback interface
+            var iface = data?.Rsp?.FirstOrDefault(i => i.Name != "lo");
+            return iface?.Ifid ?? 2;
+        }
+        catch
+        {
+            return 2;
         }
     }
 
@@ -177,43 +188,53 @@ public class NtopngClient : INtopngClient
         }
     }
 
-    // Internal DTOs for ntopng API responses (simplified)
-    private class NtopngHostsResponse
+    // Internal DTOs matching actual ntopng REST v2 response format
+
+    private class NtopngApiResponse<T>
     {
-        [JsonPropertyName("hosts")]
-        public List<NtopngHost>? Hosts { get; set; }
+        [JsonPropertyName("rc")] public int Rc { get; set; }
+        [JsonPropertyName("rc_str")] public string? RcStr { get; set; }
+        [JsonPropertyName("rsp")] public T? Rsp { get; set; }
+    }
+
+    private class NtopngHostsPage
+    {
+        [JsonPropertyName("data")] public List<NtopngHost>? Data { get; set; }
+    }
+
+    private class NtopngInterface
+    {
+        [JsonPropertyName("ifid")] public int Ifid { get; set; }
+        [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
     }
 
     private class NtopngHost
     {
-        [JsonPropertyName("ip")]
-        public string Ip { get; set; } = string.Empty;
+        [JsonPropertyName("ip")] public string Ip { get; set; } = string.Empty;
+        [JsonPropertyName("name")] public string? Name { get; set; }
+        [JsonPropertyName("mac")] public string? Mac { get; set; }
+        [JsonPropertyName("bytes")] public NtopngBytes? Bytes { get; set; }
+        [JsonPropertyName("thpt")] public NtopngThpt? Thpt { get; set; }
+        [JsonPropertyName("os")] public object? Os { get; set; }
+        [JsonPropertyName("first_seen")] public long FirstSeen { get; set; }
+        [JsonPropertyName("last_seen")] public long LastSeen { get; set; }
+        [JsonPropertyName("num_flows")] public NtopngFlows? NumFlows { get; set; }
+    }
 
-        [JsonPropertyName("name")]
-        public string? Name { get; set; }
+    private class NtopngBytes
+    {
+        [JsonPropertyName("sent")] public long Sent { get; set; }
+        [JsonPropertyName("recvd")] public long Recvd { get; set; }
+        [JsonPropertyName("total")] public long Total { get; set; }
+    }
 
-        [JsonPropertyName("mac")]
-        public string? Mac { get; set; }
+    private class NtopngThpt
+    {
+        [JsonPropertyName("bps")] public double Bps { get; set; }
+    }
 
-        [JsonPropertyName("bytes.sent")]
-        public long BytesSent { get; set; }
-
-        [JsonPropertyName("bytes.rcvd")]
-        public long BytesReceived { get; set; }
-
-        [JsonPropertyName("throughput")]
-        public long? Throughput { get; set; }
-
-        [JsonPropertyName("os")]
-        public string? Os { get; set; }
-
-        [JsonPropertyName("seen.first")]
-        public long FirstSeen { get; set; }
-
-        [JsonPropertyName("seen.last")]
-        public long LastSeen { get; set; }
-
-        [JsonPropertyName("is_active")]
-        public bool IsActive { get; set; }
+    private class NtopngFlows
+    {
+        [JsonPropertyName("total")] public int Total { get; set; }
     }
 }
