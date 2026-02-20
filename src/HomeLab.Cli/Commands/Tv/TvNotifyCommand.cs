@@ -4,13 +4,13 @@ using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.Tv;
 
-public class TvKeyCommand : AsyncCommand<TvKeyCommand.Settings>
+public class TvNotifyCommand : AsyncCommand<TvNotifyCommand.Settings>
 {
     public class Settings : CommandSettings
     {
-        [CommandArgument(0, "<KEY>")]
-        [Description("Remote key to send (ENTER, OK, UP, DOWN, LEFT, RIGHT, BACK, PLAY, PAUSE, etc.)")]
-        public string Key { get; set; } = string.Empty;
+        [CommandArgument(0, "<MESSAGE>")]
+        [Description("Message to display on TV screen")]
+        public string Message { get; set; } = string.Empty;
 
         [CommandOption("-v|--verbose")]
         [Description("Show detailed debug output")]
@@ -31,18 +31,18 @@ public class TvKeyCommand : AsyncCommand<TvKeyCommand.Settings>
             if (settings.Verbose)
             {
                 await client.ConnectAsync(config!.IpAddress, config.ClientKey);
-                await client.SendKeyAsync(settings.Key);
+                await client.CreateToastAsync(settings.Message);
             }
             else
             {
-                await AnsiConsole.Status().Spinner(Spinner.Known.Dots).StartAsync($"Sending {settings.Key.ToUpper()}...", async _ =>
+                await AnsiConsole.Status().Spinner(Spinner.Known.Dots).StartAsync("Sending notification...", async _ =>
                 {
                     await client.ConnectAsync(config!.IpAddress, config.ClientKey);
-                    await client.SendKeyAsync(settings.Key);
+                    await client.CreateToastAsync(settings.Message);
                 });
             }
 
-            AnsiConsole.MarkupLine($"[green]Sent key: {settings.Key.ToUpper()}[/]");
+            AnsiConsole.MarkupLine("[green]Notification sent![/]");
             return 0;
         }
         catch (Exception ex)

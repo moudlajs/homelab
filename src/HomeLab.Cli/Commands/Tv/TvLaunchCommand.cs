@@ -1,8 +1,4 @@
 using System.ComponentModel;
-using System.Text.Json;
-using HomeLab.Cli.Models;
-using HomeLab.Cli.Services.Abstractions;
-using HomeLab.Cli.Services.LgTv;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -19,16 +15,9 @@ public class TvLaunchCommand : AsyncCommand<TvLaunchCommand.Settings>
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        var config = await LoadTvConfigAsync();
-        if (config == null)
+        var config = await TvCommandHelper.LoadTvConfigAsync();
+        if (!TvCommandHelper.ValidateConfig(config))
         {
-            AnsiConsole.MarkupLine("[red]TV not configured. Run 'homelab tv setup' first.[/]");
-            return 1;
-        }
-
-        if (string.IsNullOrEmpty(config.ClientKey))
-        {
-            AnsiConsole.MarkupLine("[red]TV not paired. Run 'homelab tv setup' to pair.[/]");
             return 1;
         }
 
@@ -36,7 +25,7 @@ public class TvLaunchCommand : AsyncCommand<TvLaunchCommand.Settings>
         var appToFind = settings.App;
         if (appToFind.Equals("default", StringComparison.OrdinalIgnoreCase))
         {
-            if (string.IsNullOrEmpty(config.DefaultApp))
+            if (string.IsNullOrEmpty(config!.DefaultApp))
             {
                 AnsiConsole.MarkupLine("[red]No default app configured.[/]");
                 AnsiConsole.MarkupLine("[dim]Set DefaultApp in ~/.homelab/tv.json[/]");
@@ -45,13 +34,13 @@ public class TvLaunchCommand : AsyncCommand<TvLaunchCommand.Settings>
             appToFind = config.DefaultApp;
         }
 
-        var client = new LgTvClient();
+        var client = TvCommandHelper.CreateClient();
         try
         {
             string? appIdToLaunch = null;
             string? appName = null;
 
-            await AnsiConsole.Status().Spinner(Spinner.Known.Dots).StartAsync($"Connecting to {config.Name}...", async _ =>
+            await AnsiConsole.Status().Spinner(Spinner.Known.Dots).StartAsync($"Connecting to {config!.Name}...", async _ =>
             {
                 await client.ConnectAsync(config.IpAddress, config.ClientKey);
 
@@ -105,24 +94,6 @@ public class TvLaunchCommand : AsyncCommand<TvLaunchCommand.Settings>
         finally
         {
             await client.DisconnectAsync();
-        }
-    }
-
-    private static async Task<TvConfig?> LoadTvConfigAsync()
-    {
-        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".homelab", "tv.json");
-        if (!File.Exists(path))
-        {
-            return null;
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<TvConfig>(await File.ReadAllTextAsync(path));
-        }
-        catch
-        {
-            return null;
         }
     }
 }

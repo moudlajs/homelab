@@ -362,6 +362,47 @@ public class LgTvClient : ILgTvClient
         return apps;
     }
 
+    // Screen control
+    public async Task TurnScreenOffAsync() => await SendRequestAsync("ssap://com.webos.service.tvpower/power/turnOffScreen", null);
+    public async Task TurnScreenOnAsync() => await SendRequestAsync("ssap://com.webos.service.tvpower/power/turnOnScreen", null);
+
+    // Power state (detailed)
+    public async Task<JsonElement> GetPowerStateAsync() => await SendRequestAsync("ssap://com.webos.service.tvpower/power/getPowerState", null);
+
+    // Sound output
+    public async Task<JsonElement> GetSoundOutputAsync() => await SendRequestAsync("ssap://com.webos.service.apiadapter/audio/getSoundOutput", null);
+    public async Task ChangeSoundOutputAsync(string output) => await SendRequestAsync("ssap://com.webos.service.apiadapter/audio/changeSoundOutput", new { output });
+
+    // Input sources
+    public async Task<JsonElement> GetExternalInputListAsync() => await SendRequestAsync("ssap://tv/getExternalInputList", null);
+    public async Task SwitchInputAsync(string inputId) => await SendRequestAsync("ssap://tv/switchInput", new { inputId });
+
+    // Channels
+    public async Task<JsonElement> GetChannelListAsync() => await SendRequestAsync("ssap://tv/getChannelList", null);
+    public async Task<JsonElement> GetCurrentChannelAsync() => await SendRequestAsync("ssap://tv/getCurrentChannel", null);
+    public async Task OpenChannelAsync(string channelId) => await SendRequestAsync("ssap://tv/openChannel", new { channelId });
+    public async Task ChannelUpAsync() => await SendRequestAsync("ssap://tv/channelUp", null);
+    public async Task ChannelDownAsync() => await SendRequestAsync("ssap://tv/channelDown", null);
+
+    // Notifications
+    public async Task CreateToastAsync(string message) => await SendRequestAsync("ssap://system.notifications/createToast", new { message });
+
+    // System info
+    public async Task<JsonElement> GetSystemInfoAsync() => await SendRequestAsync("ssap://system/getSystemInfo", null);
+    public async Task<JsonElement> GetSoftwareInfoAsync() => await SendRequestAsync("ssap://com.webos.service.update/getCurrentSWInformation", null);
+
+    // Settings
+    public async Task<JsonElement> GetSystemSettingsAsync(string category, string[] keys) => await SendRequestAsync("ssap://settings/getSystemSettings", new { category, keys });
+    public async Task SetSystemSettingsAsync(string category, Dictionary<string, object> settings) => await SendRequestAsync("ssap://settings/setSystemSettings", new { category, settings });
+
+    // Close app
+    public async Task CloseAppAsync(string appId) => await SendRequestAsync("ssap://system.launcher/close", new { id = appId });
+
+    // Media controls
+    public async Task MediaPlayAsync() => await SendRequestAsync("ssap://media.controls/play", null);
+    public async Task MediaPauseAsync() => await SendRequestAsync("ssap://media.controls/pause", null);
+    public async Task MediaStopAsync() => await SendRequestAsync("ssap://media.controls/stop", null);
+
     private async Task<JsonElement> SendRequestAsync(string uri, object? payload)
     {
         if (_webSocket == null || _webSocket.State != WebSocketState.Open)
