@@ -1,6 +1,6 @@
 using System.ComponentModel;
-using System.Text.Json;
 using HomeLab.Cli.Services.Abstractions;
+using HomeLab.Cli.Services.Configuration;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -8,7 +8,7 @@ namespace HomeLab.Cli.Commands.Camera;
 
 public class CameraSetupCommand : AsyncCommand<CameraSetupCommand.Settings>
 {
-    private readonly IServiceClientFactory _clientFactory;
+    private readonly IHomelabConfigService _configService;
 
     public class Settings : CommandSettings
     {
@@ -29,9 +29,9 @@ public class CameraSetupCommand : AsyncCommand<CameraSetupCommand.Settings>
         public string? Token { get; set; }
     }
 
-    public CameraSetupCommand(IServiceClientFactory clientFactory)
+    public CameraSetupCommand(IHomelabConfigService configService)
     {
-        _clientFactory = clientFactory;
+        _configService = configService;
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -39,18 +39,18 @@ public class CameraSetupCommand : AsyncCommand<CameraSetupCommand.Settings>
         AnsiConsole.Write(new Rule("[blue]Camera Setup Wizard[/]").RuleStyle("grey"));
         AnsiConsole.WriteLine();
 
-        var existing = await LoadConfigAsync();
-        if (existing != null)
+        var existing = _configService.GetServiceConfig("scrypted");
+        if (!string.IsNullOrEmpty(existing.Url))
         {
             AnsiConsole.MarkupLine($"[dim]Existing config found: {existing.Url}[/]");
             AnsiConsole.WriteLine();
         }
 
-        var defaultUrl = existing?.Url ?? "http://localhost:11080";
+        var defaultUrl = existing.Url ?? "http://localhost:11080";
         var url = settings.Url ?? AnsiConsole.Prompt(
             new TextPrompt<string>("Scrypted URL:").DefaultValue(defaultUrl));
 
-        var defaultUser = existing?.Username ?? "";
+        var defaultUser = existing.Username ?? "";
         var username = settings.Username ?? AnsiConsole.Prompt(
             new TextPrompt<string>("Username:").DefaultValue(defaultUser).AllowEmpty());
 
@@ -65,7 +65,7 @@ public class CameraSetupCommand : AsyncCommand<CameraSetupCommand.Settings>
         try
         {
             using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-            var response = await httpClient.GetAsync($"{url.TrimEnd('/')}/login");
+            var response = await httpClient.GetAsync($"{url.TrimEnd('/')}/login", cancellationToken);
             if (response.IsSuccessStatusCode)
             {
                 AnsiConsole.MarkupLine("[green]✓[/] Scrypted is reachable!");
@@ -89,48 +89,21 @@ public class CameraSetupCommand : AsyncCommand<CameraSetupCommand.Settings>
             }
         }
 
-        var config = new CameraConfig
+        var serviceConfig = new ServiceConfig
         {
             Url = url.TrimEnd('/'),
             Username = string.IsNullOrEmpty(username) ? null : username,
             Password = string.IsNullOrEmpty(password) ? null : password,
-            Token = string.IsNullOrEmpty(token) ? null : token
+            Token = string.IsNullOrEmpty(token) ? null : token,
+            Enabled = true
         };
 
-        var configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".homelab");
-        Directory.CreateDirectory(configDir);
-        var configPath = Path.Combine(configDir, "camera.json");
-        await File.WriteAllTextAsync(configPath,
-            JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true }));
+        await _configService.UpdateServiceConfigAsync("scrypted", serviceConfig);
 
         AnsiConsole.MarkupLine("\n[green]Configuration saved![/]");
-        AnsiConsole.MarkupLine("[dim]Also add scrypted settings to config/homelab-cli.yaml for CLI integration.[/]");
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[dim]Commands: homelab camera list | homelab camera status | homelab camera stream <id>[/]");
 
         return 0;
-    }
-
-    private static async Task<CameraConfig?> LoadConfigAsync()
-    {
-        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".homelab", "camera.json");
-        if (!File.Exists(path))
-        {
-            return null;
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<CameraConfig>(await File.ReadAllTextAsync(path));
-        }
-        catch { return null; }
-    }
-
-    private class CameraConfig
-    {
-        public string Url { get; set; } = "http://localhost:11080";
-        public string? Username { get; set; }
-        public string? Password { get; set; }
-        public string? Token { get; set; }
     }
 }

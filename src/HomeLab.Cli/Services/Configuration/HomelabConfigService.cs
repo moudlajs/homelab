@@ -113,4 +113,22 @@ public class HomelabConfigService : IHomelabConfigService
         _config ??= LoadConfigAsync().GetAwaiter().GetResult();
         return _config.Github?.Token;
     }
+
+    public async Task UpdateServiceConfigAsync(string serviceName, ServiceConfig serviceConfig)
+    {
+        _config ??= await LoadConfigAsync();
+        _config.Services[serviceName.ToLowerInvariant()] = serviceConfig;
+
+        // Ensure config directory exists
+        var configDir = Path.GetDirectoryName(_configPath)!;
+        Directory.CreateDirectory(configDir);
+
+        var serializer = new SerializerBuilder()
+            .WithNamingConvention(UnderscoredNamingConvention.Instance)
+            .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
+            .Build();
+
+        var yaml = serializer.Serialize(_config);
+        await File.WriteAllTextAsync(_configPath, yaml);
+    }
 }

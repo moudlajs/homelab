@@ -35,6 +35,11 @@ public interface IHomelabConfigService
     /// Gets GitHub personal access token for self-update (required for private repos).
     /// </summary>
     string? GetGitHubToken();
+
+    /// <summary>
+    /// Updates a service configuration and saves to disk.
+    /// </summary>
+    Task UpdateServiceConfigAsync(string serviceName, ServiceConfig serviceConfig);
 }
 
 /// <summary>
