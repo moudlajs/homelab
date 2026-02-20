@@ -5,6 +5,25 @@ All notable changes to the HomeLab CLI project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-02-20
+
+### Added - Extended TV Controls
+- **`homelab tv screen off|on`** — turn screen off/on without full power cycle (TV stays running)
+- **`homelab tv input [ID]`** — list all HDMI/external input sources or switch to one
+- **`homelab tv sound [OUTPUT]`** — show current sound output or change device
+- **`homelab tv channel [NUM|up|down]`** — show current channel, list all, or tune
+- **`homelab tv info`** — display system info, software version, power state
+- **`homelab tv notify "message"`** — send toast notification to TV screen
+- **`homelab tv settings --get/--set`** — read/write TV system settings (picture, energy saving, etc.)
+
+### Fixed
+- **ntopng API integration** — disabled login requirement, auto-discover network interface, fixed response DTO mapping
+- **Dashboard redesign** — full homelab overview with system gauges, network/VPN, containers, anomalies
+
+### Changed
+- Refactored TV commands to use shared `TvCommandHelper` (eliminated 8x code duplication)
+- Added Makefile with `make install` for ARM64 codesign workflow
+
 ## [1.13.0] - 2026-02-14
 
 ### Added - Enhanced Network Monitoring
