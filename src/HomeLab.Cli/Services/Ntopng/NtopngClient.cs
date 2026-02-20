@@ -127,7 +127,10 @@ public class NtopngClient : INtopngClient
         try
         {
             var response = await _httpClient.GetAsync($"{_baseUrl}/lua/rest/v2/get/ntopng/interfaces.lua");
-            if (!response.IsSuccessStatusCode) return 2;
+            if (!response.IsSuccessStatusCode)
+            {
+                return 2;
+            }
 
             var data = await response.Content.ReadFromJsonAsync<NtopngApiResponse<List<NtopngInterface>>>();
             // Pick first non-loopback interface
