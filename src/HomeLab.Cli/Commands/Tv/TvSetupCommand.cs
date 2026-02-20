@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Text.Json;
 using HomeLab.Cli.Models;
 using HomeLab.Cli.Services.Abstractions;
-using HomeLab.Cli.Services.LgTv;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -28,7 +27,7 @@ public class TvSetupCommand : AsyncCommand<TvSetupCommand.Settings>
         AnsiConsole.WriteLine();
 
         // Load existing config if available
-        var existingConfig = await LoadTvConfigAsync();
+        var existingConfig = await TvCommandHelper.LoadTvConfigAsync();
         if (existingConfig != null)
         {
             AnsiConsole.MarkupLine($"[dim]Existing config found: {existingConfig.Name} ({existingConfig.IpAddress})[/]");
@@ -75,13 +74,7 @@ public class TvSetupCommand : AsyncCommand<TvSetupCommand.Settings>
         }
 
         string? clientKey = null;
-        var client = new LgTvClient();
-
-        // Enable verbose logging if requested
-        if (settings.Verbose)
-        {
-            client.SetVerboseLogging(msg => AnsiConsole.MarkupLine($"[dim]{msg.EscapeMarkup()}[/]"));
-        }
+        var client = TvCommandHelper.CreateClient(settings.Verbose);
 
         try
         {
@@ -131,15 +124,4 @@ public class TvSetupCommand : AsyncCommand<TvSetupCommand.Settings>
         return 0;
     }
 
-    private static async Task<TvConfig?> LoadTvConfigAsync()
-    {
-        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".homelab", "tv.json");
-        if (!File.Exists(path))
-        {
-            return null;
-        }
-
-        try { return JsonSerializer.Deserialize<TvConfig>(await File.ReadAllTextAsync(path)); }
-        catch { return null; }
-    }
 }

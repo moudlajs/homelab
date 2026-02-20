@@ -80,7 +80,7 @@ _homelab_completions()
     local network_commands=""scan ports devices traffic intrusion alerts status st""
 
     # TV subcommands
-    local tv_commands=""on off apps launch key status st setup debug""
+    local tv_commands=""on off apps launch key screen input sound channel info notify settings status st setup debug""
 
     # Common flags
     local output_flags=""--output --export""
@@ -280,6 +280,13 @@ _homelab() {
                         ""apps[List installed apps on TV]"" \
                         ""launch[Launch an app on TV]"" \
                         ""key[Send remote control key to TV]"" \
+                        ""screen[Turn screen off/on without power cycle]"" \
+                        ""input[List or switch input sources]"" \
+                        ""sound[Get or change sound output]"" \
+                        ""channel[List or tune to channel]"" \
+                        ""info[Show system and software info]"" \
+                        ""notify[Send toast notification]"" \
+                        ""settings[Get or set system settings]"" \
                         ""status[Check TV status and connectivity]"" \
                         ""st[Alias for status]"" \
                         ""setup[Configure and pair with TV]"" \

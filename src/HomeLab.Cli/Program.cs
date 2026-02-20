@@ -314,6 +314,20 @@ public static class Program
                 .WithDescription("Launch an app on TV");
             tv.AddCommand<TvKeyCommand>("key")
                 .WithDescription("Send remote control key to TV");
+            tv.AddCommand<TvScreenCommand>("screen")
+                .WithDescription("Turn TV screen off/on without power cycle");
+            tv.AddCommand<TvInputCommand>("input")
+                .WithDescription("List or switch HDMI/external input sources");
+            tv.AddCommand<TvSoundCommand>("sound")
+                .WithDescription("Get or change sound output device");
+            tv.AddCommand<TvChannelCommand>("channel")
+                .WithDescription("List channels or tune to a channel");
+            tv.AddCommand<TvInfoCommand>("info")
+                .WithDescription("Show system info, software version, power state");
+            tv.AddCommand<TvNotifyCommand>("notify")
+                .WithDescription("Send a toast notification to the TV screen");
+            tv.AddCommand<TvSettingsCommand>("settings")
+                .WithDescription("Get or set TV system settings");
             tv.AddCommand<TvDebugCommand>("debug")
                 .WithDescription("Debug TV connection and app detection");
         });

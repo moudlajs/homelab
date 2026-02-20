@@ -4,13 +4,13 @@ using Spectre.Console.Cli;
 
 namespace HomeLab.Cli.Commands.Tv;
 
-public class TvKeyCommand : AsyncCommand<TvKeyCommand.Settings>
+public class TvScreenCommand : AsyncCommand<TvScreenCommand.Settings>
 {
     public class Settings : CommandSettings
     {
-        [CommandArgument(0, "<KEY>")]
-        [Description("Remote key to send (ENTER, OK, UP, DOWN, LEFT, RIGHT, BACK, PLAY, PAUSE, etc.)")]
-        public string Key { get; set; } = string.Empty;
+        [CommandArgument(0, "<ACTION>")]
+        [Description("Screen action: on or off")]
+        public string Action { get; set; } = string.Empty;
 
         [CommandOption("-v|--verbose")]
         [Description("Show detailed debug output")]
@@ -25,24 +25,45 @@ public class TvKeyCommand : AsyncCommand<TvKeyCommand.Settings>
             return 1;
         }
 
+        var action = settings.Action.ToLowerInvariant();
+        if (action != "on" && action != "off")
+        {
+            AnsiConsole.MarkupLine("[red]Invalid action. Use 'on' or 'off'.[/]");
+            return 1;
+        }
+
         var client = TvCommandHelper.CreateClient(settings.Verbose);
         try
         {
             if (settings.Verbose)
             {
                 await client.ConnectAsync(config!.IpAddress, config.ClientKey);
-                await client.SendKeyAsync(settings.Key);
+                if (action == "off")
+                {
+                    await client.TurnScreenOffAsync();
+                }
+                else
+                {
+                    await client.TurnScreenOnAsync();
+                }
             }
             else
             {
-                await AnsiConsole.Status().Spinner(Spinner.Known.Dots).StartAsync($"Sending {settings.Key.ToUpper()}...", async _ =>
+                await AnsiConsole.Status().Spinner(Spinner.Known.Dots).StartAsync($"Turning screen {action}...", async _ =>
                 {
                     await client.ConnectAsync(config!.IpAddress, config.ClientKey);
-                    await client.SendKeyAsync(settings.Key);
+                    if (action == "off")
+                    {
+                        await client.TurnScreenOffAsync();
+                    }
+                    else
+                    {
+                        await client.TurnScreenOnAsync();
+                    }
                 });
             }
 
-            AnsiConsole.MarkupLine($"[green]Sent key: {settings.Key.ToUpper()}[/]");
+            AnsiConsole.MarkupLine($"[green]Screen turned {action}![/]");
             return 0;
         }
         catch (Exception ex)

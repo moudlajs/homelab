@@ -1,6 +1,3 @@
-using System.Text.Json;
-using HomeLab.Cli.Models;
-using HomeLab.Cli.Services.LgTv;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -12,19 +9,16 @@ public class TvDebugCommand : AsyncCommand<TvDebugCommand.Settings>
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        var config = await LoadTvConfigAsync();
-        if (config == null)
+        var config = await TvCommandHelper.LoadTvConfigAsync();
+        if (!TvCommandHelper.ValidateConfig(config))
         {
-            AnsiConsole.MarkupLine("[red]TV not configured.[/]");
             return 1;
         }
 
-        var client = new LgTvClient();
-        client.SetVerboseLogging(msg => AnsiConsole.MarkupLine($"[dim]{msg.EscapeMarkup()}[/]"));
-
+        var client = TvCommandHelper.CreateClient(verbose: true);
         try
         {
-            await client.ConnectAsync(config.IpAddress, config.ClientKey);
+            await client.ConnectAsync(config!.IpAddress, config.ClientKey);
             var foregroundApp = await client.GetForegroundAppAsync();
             AnsiConsole.MarkupLine($"[green]Foreground app:[/] {foregroundApp ?? "(none)"}");
             AnsiConsole.MarkupLine($"[dim]Expected app:[/] {config.DefaultApp ?? "(not set)"}");
@@ -38,24 +32,6 @@ public class TvDebugCommand : AsyncCommand<TvDebugCommand.Settings>
         finally
         {
             await client.DisconnectAsync();
-        }
-    }
-
-    private static async Task<TvConfig?> LoadTvConfigAsync()
-    {
-        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".homelab", "tv.json");
-        if (!File.Exists(path))
-        {
-            return null;
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<TvConfig>(await File.ReadAllTextAsync(path));
-        }
-        catch
-        {
-            return null;
         }
     }
 }

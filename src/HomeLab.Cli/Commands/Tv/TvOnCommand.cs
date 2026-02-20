@@ -1,8 +1,5 @@
 using System.ComponentModel;
-using System.Text.Json;
-using HomeLab.Cli.Models;
 using HomeLab.Cli.Services.Abstractions;
-using HomeLab.Cli.Services.LgTv;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -31,7 +28,7 @@ public class TvOnCommand : AsyncCommand<TvOnCommand.Settings>
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        var config = await LoadTvConfigAsync();
+        var config = await TvCommandHelper.LoadTvConfigAsync();
         if (config == null) { AnsiConsole.MarkupLine("[red]TV not configured. Run 'homelab tv setup' first.[/]"); return 1; }
 
         // Determine which app to launch
@@ -83,7 +80,7 @@ public class TvOnCommand : AsyncCommand<TvOnCommand.Settings>
             // Give TV a moment to fully initialize WebOS
             await Task.Delay(3000);
 
-            var client = new LgTvClient();
+            var client = TvCommandHelper.CreateClient();
             try
             {
                 string? appName = null;
@@ -164,7 +161,7 @@ public class TvOnCommand : AsyncCommand<TvOnCommand.Settings>
         // Send keys even without app launch (if TV is already on)
         if (settings.Keys != null && settings.Keys.Length > 0 && string.IsNullOrEmpty(appToLaunch) && !string.IsNullOrEmpty(config.ClientKey))
         {
-            var client = new LgTvClient();
+            var client = TvCommandHelper.CreateClient();
             try
             {
                 await client.ConnectAsync(config.IpAddress, config.ClientKey);
@@ -191,15 +188,4 @@ public class TvOnCommand : AsyncCommand<TvOnCommand.Settings>
         return 0;
     }
 
-    private static async Task<TvConfig?> LoadTvConfigAsync()
-    {
-        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".homelab", "tv.json");
-        if (!File.Exists(path))
-        {
-            return null;
-        }
-
-        try { return JsonSerializer.Deserialize<TvConfig>(await File.ReadAllTextAsync(path)); }
-        catch { return null; }
-    }
 }
