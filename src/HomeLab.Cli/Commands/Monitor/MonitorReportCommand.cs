@@ -9,7 +9,7 @@ namespace HomeLab.Cli.Commands.Monitor;
 
 /// <summary>
 /// AI-powered homelab health report.
-/// Collects system, Docker, and Prometheus data, then sends to LLM for analysis.
+/// Collects system and Docker data, then sends to LLM for analysis.
 /// </summary>
 public class MonitorReportCommand : AsyncCommand<MonitorReportCommand.Settings>
 {

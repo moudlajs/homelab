@@ -24,9 +24,9 @@ public enum ServiceType
     Unknown,
     Dns,        // AdGuard Home
     Vpn,        // Tailscale
-    Monitoring, // Prometheus
-    Dashboard,  // Grafana
-    Metrics,    // Node Exporter
+    Monitoring,
+    Dashboard,
+    Metrics,
     Database,   // PostgreSQL, MySQL, etc.
     WebServer,  // Nginx, Apache, etc.
     Application // Custom applications

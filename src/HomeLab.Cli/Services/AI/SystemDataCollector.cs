@@ -11,7 +11,7 @@ using EventLogEntry = HomeLab.Cli.Models.EventLog.EventLogEntry;
 namespace HomeLab.Cli.Services.AI;
 
 /// <summary>
-/// Collects system, Docker, Prometheus, and network metrics into a structured snapshot.
+/// Collects system, Docker, and network metrics into a structured snapshot.
 /// </summary>
 public class SystemDataCollector : ISystemDataCollector
 {
