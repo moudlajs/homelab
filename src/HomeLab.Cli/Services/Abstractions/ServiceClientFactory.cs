@@ -35,7 +35,9 @@ public class ServiceClientFactory : IServiceClientFactory
     {
         var config = _configService.GetServiceConfig("uptime_kuma");
         var baseUrl = config?.Url ?? "http://localhost:3001";
-        return new UptimeKumaClient(_httpClient, baseUrl);
+        var username = config?.Username ?? "";
+        var password = config?.Password ?? "";
+        return new UptimeKumaClient(baseUrl, username, password);
     }
 
     public IHomeAssistantClient CreateHomeAssistantClient()

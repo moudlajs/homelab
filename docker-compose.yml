@@ -50,7 +50,6 @@ services:
     image: louislam/uptime-kuma:latest
     container_name: homelab_uptime_kuma
     restart: unless-stopped
-    ports:
-      - "3001:3001"
+    network_mode: host
     volumes:
       - ./data/uptime-kuma:/app/data
