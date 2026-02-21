@@ -4,7 +4,6 @@ using HomeLab.Cli.Commands.HomeAssistant;
 using HomeLab.Cli.Commands.Monitor;
 using HomeLab.Cli.Commands.Network;
 using HomeLab.Cli.Commands.Remote;
-using HomeLab.Cli.Commands.Speedtest;
 using HomeLab.Cli.Commands.Traefik;
 using HomeLab.Cli.Commands.Tv;
 using HomeLab.Cli.Commands.Uptime;
@@ -170,16 +169,6 @@ public static class Program
         config.AddBranch("monitor", monitor =>
         {
             monitor.SetDescription("Monitor homelab metrics and alerts");
-            monitor.AddCommand<MonitorAlertsCommand>("alerts")
-                .WithAlias("al")
-                .WithDescription("Display active Prometheus alerts");
-            monitor.AddCommand<MonitorTargetsCommand>("targets")
-                .WithAlias("tg")
-                .WithDescription("Display Prometheus scrape targets");
-            monitor.AddCommand<MonitorDashboardCommand>("dashboard")
-                .WithAlias("dash")
-                .WithAlias("db")
-                .WithDescription("Open Grafana dashboards");
             monitor.AddCommand<MonitorReportCommand>("report")
                 .WithAlias("ai")
                 .WithDescription("AI-powered homelab health summary");
@@ -227,17 +216,6 @@ public static class Program
             uptime.AddCommand<UptimeRemoveCommand>("remove")
                 .WithAlias("rm")
                 .WithDescription("Remove a monitor from tracking");
-        });
-
-        // Phase 6: Internet Speed Testing
-        config.AddBranch("speedtest", speedtest =>
-        {
-            speedtest.SetDescription("Monitor internet connection speed");
-            speedtest.AddCommand<SpeedtestRunCommand>("run")
-                .WithDescription("Run a new speed test");
-            speedtest.AddCommand<SpeedtestStatsCommand>("stats")
-                .WithAlias("st")
-                .WithDescription("Display speed test statistics and history");
         });
 
         // Phase 8: Home Assistant Integration

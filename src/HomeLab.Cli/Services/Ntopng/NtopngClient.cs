@@ -133,8 +133,10 @@ public class NtopngClient : INtopngClient
             }
 
             var data = await response.Content.ReadFromJsonAsync<NtopngApiResponse<List<NtopngInterface>>>();
-            // Pick first non-loopback interface
-            var iface = data?.Rsp?.FirstOrDefault(i => i.Name != "lo");
+            // Prefer physical interfaces (eth0/en0) over virtual ones (docker0, veth, br-)
+            var iface = data?.Rsp?.FirstOrDefault(i => i.Name is "eth0" or "en0")
+                ?? data?.Rsp?.FirstOrDefault(i => i.Name.StartsWith("en") || i.Name.StartsWith("eth"))
+                ?? data?.Rsp?.FirstOrDefault(i => i.Name != "lo" && !i.Name.StartsWith("docker") && !i.Name.StartsWith("veth") && !i.Name.StartsWith("br-"));
             return iface?.Ifid ?? 2;
         }
         catch

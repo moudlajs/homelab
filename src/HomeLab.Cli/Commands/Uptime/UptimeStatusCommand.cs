@@ -58,12 +58,10 @@ public class UptimeStatusCommand : AsyncCommand<UptimeStatusCommand.Settings>
         if (!healthInfo.IsHealthy)
         {
             AnsiConsole.MarkupLine($"[red]✗[/] Uptime Kuma is not healthy: {healthInfo.Message}");
-            AnsiConsole.MarkupLine("[yellow]Note: Showing mock data for demonstration[/]\n");
+            return 1;
         }
-        else
-        {
-            AnsiConsole.MarkupLine($"[green]✓[/] Uptime Kuma is healthy\n");
-        }
+
+        AnsiConsole.MarkupLine($"[green]✓[/] Uptime Kuma is healthy\n");
 
         // Get all monitors
         var monitors = await client.GetMonitorsAsync();

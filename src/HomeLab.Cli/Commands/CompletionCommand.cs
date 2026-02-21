@@ -50,7 +50,7 @@ _homelab_completions()
     _init_completion || return
 
     # Top-level commands
-    local commands=""status st service svc config logs image-update cleanup version self-update tui ui dashboard vpn dns monitor remote uptime speedtest ha traefik network tv completion shell""
+    local commands=""status st service svc config logs image-update cleanup version self-update tui ui dashboard vpn dns monitor remote uptime ha traefik network tv completion shell""
 
     # VPN subcommands
     local vpn_commands=""status st up down devices ls""
@@ -59,16 +59,13 @@ _homelab_completions()
     local dns_commands=""stats st blocked bl""
 
     # Monitor subcommands
-    local monitor_commands=""report ai ask alerts al targets tg dashboard dash db collect history hist schedule sched""
+    local monitor_commands=""report ai ask collect history hist schedule sched""
 
     # Remote subcommands
     local remote_commands=""connect list status sync remove""
 
     # Uptime subcommands
     local uptime_commands=""status st ls alerts al add remove rm""
-
-    # Speedtest subcommands
-    local speedtest_commands=""run stats st""
 
     # Home Assistant subcommands
     local ha_commands=""status st ls control get list""
@@ -106,9 +103,6 @@ _homelab_completions()
                 ;;
             uptime)
                 COMPREPLY=( $(compgen -W ""$uptime_commands"" -- ""$cur"") )
-                ;;
-            speedtest)
-                COMPREPLY=( $(compgen -W ""$speedtest_commands"" -- ""$cur"") )
                 ;;
             ha)
                 COMPREPLY=( $(compgen -W ""$ha_commands"" -- ""$cur"") )
@@ -175,7 +169,6 @@ _homelab() {
                 ""monitor[Monitor homelab metrics and alerts]"" \
                 ""remote[Manage remote homelab connections]"" \
                 ""uptime[Monitor service uptime and availability]"" \
-                ""speedtest[Monitor internet connection speed]"" \
                 ""ha[Control Home Assistant smart home devices]"" \
                 ""traefik[Manage Traefik reverse proxy]"" \
                 ""network[Network scanning and monitoring]"" \
@@ -206,13 +199,6 @@ _homelab() {
                         ""report[AI-powered homelab health summary]"" \
                         ""ai[Alias for report]"" \
                         ""ask[Ask AI about your homelab]"" \
-                        ""alerts[Display active Prometheus alerts]"" \
-                        ""al[Alias for alerts]"" \
-                        ""targets[Display Prometheus scrape targets]"" \
-                        ""tg[Alias for targets]"" \
-                        ""dashboard[Open Grafana dashboards]"" \
-                        ""dash[Alias for dashboard]"" \
-                        ""db[Alias for dashboard]"" \
                         ""collect[Collect and log event snapshot]"" \
                         ""history[Show event timeline with gap detection]"" \
                         ""hist[Alias for history]"" \
@@ -237,12 +223,6 @@ _homelab() {
                         ""add[Add a new service to monitor]"" \
                         ""remove[Remove a monitor from tracking]"" \
                         ""rm[Alias for remove]""
-                    ;;
-                speedtest)
-                    _values ""speedtest commands"" \
-                        ""run[Run a new speed test]"" \
-                        ""stats[Display speed test statistics and history]"" \
-                        ""st[Alias for stats]""
                     ;;
                 ha)
                     _values ""home assistant commands"" \

@@ -22,26 +22,7 @@ public class ServiceDependencyGraph
     /// </summary>
     private void InitializeHomelabDependencies()
     {
-        // Grafana depends on Prometheus
-        AddDependency(new ServiceDependency
-        {
-            ServiceName = "grafana",
-            DependsOn = new List<string> { "prometheus" },
-            Type = DependencyType.Hard,
-            Reason = "Grafana requires Prometheus as a data source"
-        });
-
-        // Prometheus could benefit from node-exporter
-        AddDependency(new ServiceDependency
-        {
-            ServiceName = "prometheus",
-            DependsOn = new List<string> { "node-exporter" },
-            Type = DependencyType.Soft,
-            Reason = "Prometheus collects metrics from node-exporter"
-        });
-
         // AdGuard is independent (no dependencies)
-        // Node Exporter is independent (no dependencies)
     }
 
     /// <summary>

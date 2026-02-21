@@ -11,24 +11,9 @@ public interface IServiceClientFactory
     IAdGuardClient CreateAdGuardClient();
 
     /// <summary>
-    /// Creates a Prometheus client.
-    /// </summary>
-    IPrometheusClient CreatePrometheusClient();
-
-    /// <summary>
-    /// Creates a Grafana client.
-    /// </summary>
-    IGrafanaClient CreateGrafanaClient();
-
-    /// <summary>
     /// Creates an Uptime Kuma client (Phase 6).
     /// </summary>
     UptimeKuma.UptimeKumaClient CreateUptimeKumaClient();
-
-    /// <summary>
-    /// Creates a Speedtest Tracker client (Phase 6).
-    /// </summary>
-    Speedtest.SpeedtestClient CreateSpeedtestClient();
 
     /// <summary>
     /// Creates a Home Assistant client (Phase 8).

@@ -4,7 +4,7 @@ using EventLogEntry = HomeLab.Cli.Models.EventLog.EventLogEntry;
 namespace HomeLab.Cli.Services.Abstractions;
 
 /// <summary>
-/// Collects system, Docker, and Prometheus data into a structured snapshot.
+/// Collects system and Docker data into a structured snapshot.
 /// </summary>
 public interface ISystemDataCollector
 {

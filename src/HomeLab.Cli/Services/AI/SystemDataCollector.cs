@@ -11,7 +11,7 @@ using EventLogEntry = HomeLab.Cli.Models.EventLog.EventLogEntry;
 namespace HomeLab.Cli.Services.AI;
 
 /// <summary>
-/// Collects system, Docker, Prometheus, and network metrics into a structured snapshot.
+/// Collects system, Docker, and network metrics into a structured snapshot.
 /// </summary>
 public class SystemDataCollector : ISystemDataCollector
 {
@@ -33,14 +33,12 @@ public class SystemDataCollector : ISystemDataCollector
         // Collect all data sources in parallel
         var systemTask = CollectSystemMetricsAsync(snapshot.Errors);
         var dockerTask = CollectDockerMetricsAsync(snapshot.Errors);
-        var prometheusTask = CollectPrometheusMetricsAsync(snapshot.Errors);
         var networkTask = CollectNetworkMetricsAsync(snapshot.Errors);
 
-        await Task.WhenAll(systemTask, dockerTask, prometheusTask, networkTask);
+        await Task.WhenAll(systemTask, dockerTask, networkTask);
 
         snapshot.System = await systemTask;
         snapshot.Docker = await dockerTask;
-        snapshot.Prometheus = await prometheusTask;
         snapshot.Network = await networkTask;
 
         return snapshot;
@@ -87,40 +85,6 @@ public class SystemDataCollector : ISystemDataCollector
             else
             {
                 sb.AppendLine("--- DOCKER ---");
-                sb.AppendLine("Not available");
-            }
-
-            sb.AppendLine();
-        }
-
-        // Prometheus metrics
-        if (snapshot.Prometheus != null)
-        {
-            if (snapshot.Prometheus.Available)
-            {
-                sb.AppendLine("--- PROMETHEUS ---");
-                if (snapshot.Prometheus.ActiveAlerts > 0)
-                {
-                    sb.AppendLine($"Alerts ({snapshot.Prometheus.ActiveAlerts} active):");
-                    foreach (var alert in snapshot.Prometheus.AlertSummaries)
-                    {
-                        sb.AppendLine($"  - {alert}");
-                    }
-                }
-                else
-                {
-                    sb.AppendLine("Alerts: none active");
-                }
-
-                sb.AppendLine($"Targets: {snapshot.Prometheus.TargetsUp} up, {snapshot.Prometheus.TargetsDown} down");
-                if (snapshot.Prometheus.DownTargets.Count > 0)
-                {
-                    sb.AppendLine($"  Down: {string.Join(", ", snapshot.Prometheus.DownTargets)}");
-                }
-            }
-            else
-            {
-                sb.AppendLine("--- PROMETHEUS ---");
                 sb.AppendLine("Not available");
             }
 
@@ -540,46 +504,6 @@ public class SystemDataCollector : ISystemDataCollector
         {
             metrics.Available = false;
             errors.Add($"Docker data collection failed: {ex.Message}");
-        }
-
-        return metrics;
-    }
-
-    private async Task<PrometheusMetrics> CollectPrometheusMetricsAsync(List<string> errors)
-    {
-        var metrics = new PrometheusMetrics();
-
-        try
-        {
-            var client = _clientFactory.CreatePrometheusClient();
-
-            if (!await client.IsHealthyAsync())
-            {
-                metrics.Available = false;
-                errors.Add("Prometheus is not available");
-                return metrics;
-            }
-
-            metrics.Available = true;
-
-            var alerts = await client.GetActiveAlertsAsync();
-            metrics.ActiveAlerts = alerts.Count;
-            metrics.AlertSummaries = alerts
-                .Select(a => $"[{a.Severity.ToUpperInvariant()}] {a.Name}: {a.Summary}")
-                .ToList();
-
-            var targets = await client.GetTargetsAsync();
-            metrics.TargetsUp = targets.Count(t => t.Health == "up");
-            metrics.TargetsDown = targets.Count(t => t.Health != "up");
-            metrics.DownTargets = targets
-                .Where(t => t.Health != "up")
-                .Select(t => $"{t.Instance} ({t.Job})")
-                .ToList();
-        }
-        catch (Exception ex)
-        {
-            metrics.Available = false;
-            errors.Add($"Prometheus data collection failed: {ex.Message}");
         }
 
         return metrics;

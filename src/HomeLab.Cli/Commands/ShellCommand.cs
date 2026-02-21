@@ -28,11 +28,20 @@ public class ShellCommand : Command<ShellCommand.Settings>
         ReadLine.HistoryEnabled = true;
         ReadLine.AutoCompletionHandler = new ShellCompletionHandler();
 
-        // Ctrl+C handling — don't kill the shell
+        // Ctrl+C handling — double-press within 2s to exit
+        DateTime? lastCtrlC = null;
         Console.CancelKeyPress += (_, e) =>
         {
+            if (lastCtrlC.HasValue && (DateTime.Now - lastCtrlC.Value).TotalSeconds < 2)
+            {
+                e.Cancel = false;
+                return;
+            }
+
+            lastCtrlC = DateTime.Now;
             e.Cancel = true;
             AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[dim]Press Ctrl+C again to exit, or type a command.[/]");
         };
 
         try
@@ -135,7 +144,7 @@ public class ShellCommand : Command<ShellCommand.Settings>
         table.AddRow("", "");
 
         // Monitoring
-        table.AddRow("[cyan]monitor[/] report/ask/alerts/targets/dashboard/collect/history/schedule", "AI monitoring & metrics");
+        table.AddRow("[cyan]monitor[/] report/ask/collect/history/schedule", "AI monitoring & events");
         table.AddRow("[cyan]vpn[/] status/up/down/devices", "VPN management (Tailscale)");
         table.AddRow("[cyan]network[/] scan/ports/devices/traffic/intrusion/status", "Network monitoring");
         table.AddRow("[cyan]dns[/] stats/blocked", "DNS & ad-blocking");
@@ -146,7 +155,6 @@ public class ShellCommand : Command<ShellCommand.Settings>
         table.AddRow("[cyan]ha[/] status/control/get/list", "Home Assistant");
         table.AddRow("[cyan]traefik[/] status/routes/services/middlewares", "Traefik proxy");
         table.AddRow("[cyan]uptime[/] status/alerts/add/remove", "Uptime monitoring");
-        table.AddRow("[cyan]speedtest[/] run/stats", "Speed testing");
         table.AddRow("[cyan]remote[/] connect/list/status/sync/remove", "Remote management");
         table.AddRow("", "");
 

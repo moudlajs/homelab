@@ -9,16 +9,6 @@ services:
     password: "admin"
     enabled: true
 
-  prometheus:
-    url: "http://localhost:9090"
-    enabled: true
-
-  grafana:
-    url: "http://localhost:3001"
-    username: "admin"
-    password: "admin"
-    enabled: true
-
   tailscale:
     enabled: true
 
@@ -34,6 +24,10 @@ services:
 
   suricata:
     log_path: "~/Repos/homelab/data/suricata/logs/eve.json"
+    enabled: true
+
+  uptime_kuma:
+    url: "http://localhost:3001"
     enabled: true
 
 remote:

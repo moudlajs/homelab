@@ -9,7 +9,7 @@ namespace HomeLab.Cli.Commands.Monitor;
 
 /// <summary>
 /// AI-powered homelab health report.
-/// Collects system, Docker, and Prometheus data, then sends to LLM for analysis.
+/// Collects system and Docker data, then sends to LLM for analysis.
 /// </summary>
 public class MonitorReportCommand : AsyncCommand<MonitorReportCommand.Settings>
 {
@@ -156,22 +156,6 @@ public class MonitorReportCommand : AsyncCommand<MonitorReportCommand.Settings>
             else
             {
                 AnsiConsole.MarkupLine("[dim]Docker: not available[/]");
-            }
-
-            AnsiConsole.WriteLine();
-        }
-
-        // Prometheus
-        if (snapshot.Prometheus != null)
-        {
-            if (snapshot.Prometheus.Available)
-            {
-                var promInfo = $"Alerts: {snapshot.Prometheus.ActiveAlerts} active | Targets: {snapshot.Prometheus.TargetsUp} up, {snapshot.Prometheus.TargetsDown} down";
-                AnsiConsole.Write(new Panel(promInfo).Header("[yellow]Prometheus[/]").BorderColor(Color.Yellow).RoundedBorder());
-            }
-            else
-            {
-                AnsiConsole.MarkupLine("[dim]Prometheus: not available[/]");
             }
 
             AnsiConsole.WriteLine();

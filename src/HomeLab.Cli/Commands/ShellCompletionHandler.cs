@@ -14,16 +14,15 @@ public class ShellCompletionHandler : IAutoCompleteHandler
         {
             "status", "service", "config", "logs", "image-update", "cleanup",
             "version", "self-update", "tui",
-            "vpn", "dns", "monitor", "remote", "uptime", "speedtest",
+            "vpn", "dns", "monitor", "remote", "uptime",
             "ha", "traefik", "network", "tv",
             "completion", "help", "clear", "exit"
         },
         ["vpn"] = new[] { "status", "up", "down", "devices" },
         ["dns"] = new[] { "stats", "blocked" },
-        ["monitor"] = new[] { "report", "ask", "alerts", "targets", "dashboard", "collect", "history", "schedule" },
+        ["monitor"] = new[] { "report", "ask", "collect", "history", "schedule" },
         ["remote"] = new[] { "connect", "list", "status", "sync", "remove" },
         ["uptime"] = new[] { "status", "alerts", "add", "remove" },
-        ["speedtest"] = new[] { "run", "stats" },
         ["ha"] = new[] { "status", "control", "get", "list" },
         ["traefik"] = new[] { "status", "routes", "services", "middlewares" },
         ["network"] = new[] { "scan", "ports", "devices", "traffic", "intrusion", "status", "analyze" },
