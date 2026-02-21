@@ -1,39 +1,80 @@
-using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using HomeLab.Cli.Services.Abstractions;
+using SocketIOClient;
 
 namespace HomeLab.Cli.Services.UptimeKuma;
 
 /// <summary>
-/// Client for interacting with Uptime Kuma API.
-/// Uptime Kuma is a self-hosted monitoring tool that tracks service uptime.
+/// Client for interacting with Uptime Kuma via socket.io API.
 /// </summary>
-public class UptimeKumaClient
+public class UptimeKumaClient : IDisposable
 {
-    private readonly HttpClient _httpClient;
     private readonly string _baseUrl;
-    private readonly string? _apiKey;
+    private readonly string _username;
+    private readonly string _password;
+    private SocketIOClient.SocketIO? _socket;
 
-    public UptimeKumaClient(HttpClient httpClient, string baseUrl, string? apiKey = null)
+    public UptimeKumaClient(string baseUrl, string username, string password)
     {
-        _httpClient = httpClient;
         _baseUrl = baseUrl.TrimEnd('/');
-        _apiKey = apiKey;
+        _username = username;
+        _password = password;
+    }
+
+    private async Task ConnectAsync()
+    {
+        _socket?.Dispose();
+        _socket = new SocketIOClient.SocketIO(new Uri(_baseUrl), new SocketIOOptions
+        {
+            ConnectionTimeout = TimeSpan.FromSeconds(10),
+            Reconnection = false
+        });
+
+        await _socket.ConnectAsync();
+    }
+
+    private async Task LoginAsync()
+    {
+        var loginTcs = new TaskCompletionSource<bool>();
+
+        await _socket!.EmitAsync("login",
+            new object[] { new { username = _username, password = _password, token = "" } },
+            (SocketIOClient.Common.Messages.IDataMessage ack) =>
+            {
+                var json = ack.GetValue<JsonElement>(0);
+                var ok = json.GetProperty("ok").GetBoolean();
+                if (!ok)
+                {
+                    var msg = json.TryGetProperty("msg", out var msgProp) ? msgProp.GetString() : "Unknown error";
+                    loginTcs.TrySetException(new InvalidOperationException($"Login failed: {msg}"));
+                }
+                else
+                {
+                    loginTcs.TrySetResult(true);
+                }
+                return Task.CompletedTask;
+            });
+
+        var timeout = Task.Delay(TimeSpan.FromSeconds(10));
+        if (await Task.WhenAny(loginTcs.Task, timeout) == timeout)
+        {
+            throw new TimeoutException("Login to Uptime Kuma timed out");
+        }
+
+        await loginTcs.Task;
     }
 
     /// <summary>
     /// Get health check for Uptime Kuma service.
+    /// Just tests TCP connectivity, doesn't consume events.
     /// </summary>
     public async Task<ServiceHealthInfo> GetHealthInfoAsync()
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{_baseUrl}/api/status-page/default");
-
-            return response.IsSuccessStatusCode
-                ? new ServiceHealthInfo { IsHealthy = true, Message = "Uptime Kuma is running" }
-                : new ServiceHealthInfo { IsHealthy = false, Message = $"HTTP {(int)response.StatusCode}" };
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var response = await http.GetAsync(_baseUrl);
+            return new ServiceHealthInfo { IsHealthy = true, Message = "Uptime Kuma is running" };
         }
         catch (Exception ex)
         {
@@ -46,79 +87,148 @@ public class UptimeKumaClient
     }
 
     /// <summary>
-    /// Get all monitored services.
+    /// Get all monitored services with their current status.
+    /// Creates socket, registers event handlers, then logs in to trigger data broadcast.
     /// </summary>
     public async Task<List<UptimeMonitor>> GetMonitorsAsync()
     {
-        try
+        _socket?.Dispose();
+        _socket = new SocketIOClient.SocketIO(new Uri(_baseUrl), new SocketIOOptions
         {
-            var response = await _httpClient.GetFromJsonAsync<UptimeKumaResponse<List<UptimeMonitor>>>(
-                $"{_baseUrl}/api/monitors",
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            ConnectionTimeout = TimeSpan.FromSeconds(10),
+            Reconnection = false
+        });
 
-            return response?.Data ?? new List<UptimeMonitor>();
-        }
-        catch (Exception ex)
+        var monitorTcs = new TaskCompletionSource<List<UptimeMonitor>>();
+        var heartbeats = new Dictionary<int, int>();
+        var pings = new Dictionary<int, int>();
+        var uptimes = new Dictionary<int, decimal>(); // monitorId -> 24h uptime
+        var heartbeatCount = 0;
+        var expectedCount = 0;
+
+        // Register ALL handlers BEFORE connect so we catch everything
+        _socket.OnAny((eventName, ctx) =>
         {
-            throw new InvalidOperationException($"Failed to get monitors: {ex.Message}", ex);
+            try
+            {
+                if (eventName == "monitorList")
+                {
+                    var json = ctx.GetValue<JsonElement>(0);
+                    var monitors = new List<UptimeMonitor>();
+
+                    foreach (var prop in json.EnumerateObject())
+                    {
+                        var m = prop.Value;
+                        monitors.Add(new UptimeMonitor
+                        {
+                            Id = m.GetProperty("id").GetInt32(),
+                            Name = m.GetProperty("name").GetString() ?? "",
+                            Url = m.TryGetProperty("url", out var url) ? url.GetString() ?? "" : "",
+                            Type = m.TryGetProperty("type", out var type) ? type.GetString() ?? "http" : "http",
+                            Active = m.TryGetProperty("active", out var active) && active.GetBoolean()
+                        });
+                    }
+
+                    expectedCount = monitors.Count;
+                    monitorTcs.TrySetResult(monitors);
+                }
+                else if (eventName == "heartbeatList")
+                {
+                    var monitorIdStr = ctx.GetValue<string>(0) ?? "0";
+                    var monitorId = int.Parse(monitorIdStr);
+                    var data = ctx.GetValue<JsonElement>(1);
+                    var beats = data.EnumerateArray().ToList();
+                    if (beats.Count > 0)
+                    {
+                        var latest = beats.Last();
+                        heartbeats[monitorId] = latest.GetProperty("status").GetInt32();
+                        if (latest.TryGetProperty("ping", out var ping) && ping.ValueKind == JsonValueKind.Number)
+                        {
+                            pings[monitorId] = ping.GetInt32();
+                        }
+                    }
+                    heartbeatCount++;
+                }
+                else if (eventName == "uptime")
+                {
+                    var monitorIdStr = ctx.GetValue<string>(0) ?? "0";
+                    var monitorId = int.Parse(monitorIdStr);
+                    var period = ctx.GetValue<int>(1);
+                    var value = ctx.GetValue<decimal>(2);
+                    if (period == 24)
+                    {
+                        uptimes[monitorId] = value;
+                    }
+                }
+            }
+            catch { }
+            return Task.CompletedTask;
+        });
+
+        // Connect then login — events fire with handlers already in place
+        await _socket.ConnectAsync();
+        await LoginAsync();
+
+        // Wait for monitor list
+        var timeout = Task.Delay(TimeSpan.FromSeconds(10));
+        if (await Task.WhenAny(monitorTcs.Task, timeout) == timeout)
+        {
+            throw new TimeoutException("Timed out waiting for monitor list");
         }
+
+        var monitorList = await monitorTcs.Task;
+
+        // Wait for heartbeats to arrive (they come right after monitorList)
+        var deadline = DateTime.UtcNow.AddSeconds(3);
+        while (DateTime.UtcNow < deadline && heartbeatCount < expectedCount)
+        {
+            await Task.Delay(100);
+        }
+
+        // Merge data into monitors
+        foreach (var monitor in monitorList)
+        {
+            if (heartbeats.TryGetValue(monitor.Id, out var status))
+            {
+                monitor.Status = status == 1 ? MonitorStatus.Up : MonitorStatus.Down;
+            }
+
+            if (pings.TryGetValue(monitor.Id, out var ping))
+            {
+                monitor.AverageResponse = ping;
+            }
+
+            if (uptimes.TryGetValue(monitor.Id, out var uptime))
+            {
+                monitor.UptimePercentage = Math.Round(uptime * 100, 2);
+            }
+        }
+
+        return monitorList;
     }
 
     /// <summary>
-    /// Get monitor by ID.
-    /// </summary>
-    public async Task<UptimeMonitor?> GetMonitorAsync(int id)
-    {
-        try
-        {
-            var response = await _httpClient.GetFromJsonAsync<UptimeKumaResponse<UptimeMonitor>>(
-                $"{_baseUrl}/api/monitor/{id}",
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-            return response?.Data;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Get uptime statistics for a monitor.
-    /// </summary>
-    public async Task<UptimeStats?> GetMonitorStatsAsync(int id, int days = 30)
-    {
-        try
-        {
-            var response = await _httpClient.GetFromJsonAsync<UptimeKumaResponse<UptimeStats>>(
-                $"{_baseUrl}/api/monitor/{id}/stats?days={days}",
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-            return response?.Data;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Get recent alerts/incidents.
+    /// Get recent incidents (monitors currently down).
     /// </summary>
     public async Task<List<UptimeIncident>> GetIncidentsAsync(int limit = 10)
     {
-        try
-        {
-            var response = await _httpClient.GetFromJsonAsync<UptimeKumaResponse<List<UptimeIncident>>>(
-                $"{_baseUrl}/api/incidents?limit={limit}",
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var monitors = await GetMonitorsAsync();
+        var incidents = new List<UptimeIncident>();
 
-            return response?.Data ?? new List<UptimeIncident>();
-        }
-        catch (Exception ex)
+        foreach (var monitor in monitors.Where(m => m.Status == MonitorStatus.Down))
         {
-            throw new InvalidOperationException($"Failed to get incidents: {ex.Message}", ex);
+            incidents.Add(new UptimeIncident
+            {
+                Id = monitor.Id,
+                MonitorName = monitor.Name,
+                Status = "down",
+                Message = $"{monitor.Name} is not responding",
+                StartedAt = DateTime.Now,
+                Duration = TimeSpan.Zero
+            });
         }
+
+        return incidents.Take(limit).ToList();
     }
 
     /// <summary>
@@ -126,89 +236,112 @@ public class UptimeKumaClient
     /// </summary>
     public async Task<bool> AddMonitorAsync(string name, string url, string type = "http")
     {
-        try
-        {
-            var payload = new
-            {
-                name,
-                url,
-                type,
-                interval = 60 // Check every 60 seconds
-            };
+        await ConnectAsync();
+        await LoginAsync();
 
-            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/api/add-monitor", payload);
-            return response.IsSuccessStatusCode;
-        }
-        catch
+        var tcs = new TaskCompletionSource<bool>();
+
+        await _socket!.EmitAsync("add",
+            new object[]
+            {
+                new
+                {
+                    name, url, type,
+                    interval = 60,
+                    maxretries = 3,
+                    accepted_statuscodes = new[] { "200-299", "300-399" }
+                }
+            },
+            (SocketIOClient.Common.Messages.IDataMessage ack) =>
+            {
+                try
+                {
+                    var json = ack.GetValue<JsonElement>(0);
+                    tcs.TrySetResult(json.GetProperty("ok").GetBoolean());
+                }
+                catch
+                {
+                    tcs.TrySetResult(false);
+                }
+                return Task.CompletedTask;
+            });
+
+        var timeout = Task.Delay(TimeSpan.FromSeconds(10));
+        if (await Task.WhenAny(tcs.Task, timeout) == timeout)
         {
             return false;
         }
+
+        return await tcs.Task;
     }
 
     /// <summary>
-    /// Remove a monitor.
+    /// Remove a monitor by ID.
     /// </summary>
     public async Task<bool> RemoveMonitorAsync(int id)
     {
-        try
-        {
-            var response = await _httpClient.DeleteAsync($"{_baseUrl}/api/monitor/{id}");
-            return response.IsSuccessStatusCode;
-        }
-        catch
+        await ConnectAsync();
+        await LoginAsync();
+
+        var tcs = new TaskCompletionSource<bool>();
+
+        await _socket!.EmitAsync("deleteMonitor",
+            new object[] { id },
+            (SocketIOClient.Common.Messages.IDataMessage ack) =>
+            {
+                try
+                {
+                    var json = ack.GetValue<JsonElement>(0);
+                    tcs.TrySetResult(json.GetProperty("ok").GetBoolean());
+                }
+                catch
+                {
+                    tcs.TrySetResult(false);
+                }
+                return Task.CompletedTask;
+            });
+
+        var timeout = Task.Delay(TimeSpan.FromSeconds(10));
+        if (await Task.WhenAny(tcs.Task, timeout) == timeout)
         {
             return false;
         }
+
+        return await tcs.Task;
     }
 
+    /// <summary>
+    /// Get a monitor by ID.
+    /// </summary>
+    public async Task<UptimeMonitor?> GetMonitorAsync(int id)
+    {
+        var monitors = await GetMonitorsAsync();
+        return monitors.FirstOrDefault(m => m.Id == id);
+    }
+
+    public void Dispose()
+    {
+        if (_socket != null)
+        {
+            _socket.DisconnectAsync().Wait(TimeSpan.FromSeconds(2));
+            _socket.Dispose();
+            _socket = null;
+        }
+    }
 }
 
-/// <summary>
-/// Generic response wrapper for Uptime Kuma API.
-/// </summary>
-public class UptimeKumaResponse<T>
-{
-    [JsonPropertyName("ok")]
-    public bool Ok { get; set; }
-
-    [JsonPropertyName("data")]
-    public T? Data { get; set; }
-
-    [JsonPropertyName("msg")]
-    public string? Message { get; set; }
-}
-
-/// <summary>
-/// Represents a monitored service in Uptime Kuma.
-/// </summary>
 public class UptimeMonitor
 {
-    [JsonPropertyName("id")]
     public int Id { get; set; }
-
-    [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
-
-    [JsonPropertyName("url")]
     public string Url { get; set; } = string.Empty;
-
-    [JsonPropertyName("type")]
     public string Type { get; set; } = "http";
-
-    [JsonPropertyName("status")]
-    [JsonConverter(typeof(JsonStringEnumConverter))]
-    public MonitorStatus Status { get; set; }
-
-    [JsonPropertyName("uptime")]
+    public MonitorStatus Status { get; set; } = MonitorStatus.Unknown;
     public decimal UptimePercentage { get; set; }
-
-    [JsonPropertyName("avg_ping")]
     public int AverageResponse { get; set; }
+    public bool Active { get; set; }
 }
 
-/// <summary>
-/// Monitor status enum.
-/// </summary>
 public enum MonitorStatus
 {
     Up = 1,
@@ -216,50 +349,13 @@ public enum MonitorStatus
     Unknown = -1
 }
 
-/// <summary>
-/// Uptime statistics for a monitor.
-/// </summary>
-public class UptimeStats
-{
-    [JsonPropertyName("uptime_24h")]
-    public decimal Uptime24h { get; set; }
-
-    [JsonPropertyName("uptime_7d")]
-    public decimal Uptime7d { get; set; }
-
-    [JsonPropertyName("uptime_30d")]
-    public decimal Uptime30d { get; set; }
-
-    [JsonPropertyName("total_checks")]
-    public int TotalChecks { get; set; }
-
-    [JsonPropertyName("failed_checks")]
-    public int FailedChecks { get; set; }
-}
-
-/// <summary>
-/// Represents an uptime incident/outage.
-/// </summary>
 public class UptimeIncident
 {
-    [JsonPropertyName("id")]
     public int Id { get; set; }
-
-    [JsonPropertyName("monitor_name")]
     public string MonitorName { get; set; } = string.Empty;
-
-    [JsonPropertyName("status")]
     public string Status { get; set; } = string.Empty;
-
-    [JsonPropertyName("message")]
     public string Message { get; set; } = string.Empty;
-
-    [JsonPropertyName("started_at")]
     public DateTime StartedAt { get; set; }
-
-    [JsonPropertyName("ended_at")]
     public DateTime? EndedAt { get; set; }
-
-    [JsonPropertyName("duration")]
     public TimeSpan Duration { get; set; }
 }
