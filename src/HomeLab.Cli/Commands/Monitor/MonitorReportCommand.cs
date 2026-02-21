@@ -161,22 +161,6 @@ public class MonitorReportCommand : AsyncCommand<MonitorReportCommand.Settings>
             AnsiConsole.WriteLine();
         }
 
-        // Prometheus
-        if (snapshot.Prometheus != null)
-        {
-            if (snapshot.Prometheus.Available)
-            {
-                var promInfo = $"Alerts: {snapshot.Prometheus.ActiveAlerts} active | Targets: {snapshot.Prometheus.TargetsUp} up, {snapshot.Prometheus.TargetsDown} down";
-                AnsiConsole.Write(new Panel(promInfo).Header("[yellow]Prometheus[/]").BorderColor(Color.Yellow).RoundedBorder());
-            }
-            else
-            {
-                AnsiConsole.MarkupLine("[dim]Prometheus: not available[/]");
-            }
-
-            AnsiConsole.WriteLine();
-        }
-
         // Network
         if (snapshot.Network != null)
         {

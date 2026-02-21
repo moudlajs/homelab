@@ -7,7 +7,6 @@ public class HomelabDataSnapshot
 {
     public SystemMetrics? System { get; set; }
     public DockerMetrics? Docker { get; set; }
-    public PrometheusMetrics? Prometheus { get; set; }
     public NetworkMetrics? Network { get; set; }
     public List<string> Errors { get; set; } = new();
     public DateTime CollectedAt { get; set; } = DateTime.UtcNow;
@@ -41,16 +40,6 @@ public class ContainerSnapshot
     public string Name { get; set; } = string.Empty;
     public bool IsRunning { get; set; }
     public string Status { get; set; } = string.Empty;
-}
-
-public class PrometheusMetrics
-{
-    public bool Available { get; set; }
-    public int ActiveAlerts { get; set; }
-    public List<string> AlertSummaries { get; set; } = new();
-    public int TargetsUp { get; set; }
-    public int TargetsDown { get; set; }
-    public List<string> DownTargets { get; set; } = new();
 }
 
 public class NetworkMetrics

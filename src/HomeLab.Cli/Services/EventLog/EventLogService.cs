@@ -35,7 +35,24 @@ public class EventLogService : IEventLogService
 
     private static string ResolveLogPath()
     {
-        return Directory.Exists(ExternalDrivePath) ? ExternalLogPath : FallbackLogPath;
+        if (Directory.Exists(ExternalDrivePath))
+        {
+            try
+            {
+                var dir = Path.GetDirectoryName(ExternalLogPath)!;
+                Directory.CreateDirectory(dir);
+                var testFile = Path.Combine(dir, ".write_test");
+                File.WriteAllText(testFile, "");
+                File.Delete(testFile);
+                return ExternalLogPath;
+            }
+            catch
+            {
+                // External drive not writable, fall through to fallback
+            }
+        }
+
+        return FallbackLogPath;
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()

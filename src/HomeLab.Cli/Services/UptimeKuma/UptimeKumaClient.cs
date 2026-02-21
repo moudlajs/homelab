@@ -58,10 +58,9 @@ public class UptimeKumaClient
 
             return response?.Data ?? new List<UptimeMonitor>();
         }
-        catch
+        catch (Exception ex)
         {
-            // If real API isn't available, return mock data
-            return GetMockMonitors();
+            throw new InvalidOperationException($"Failed to get monitors: {ex.Message}", ex);
         }
     }
 
@@ -116,9 +115,9 @@ public class UptimeKumaClient
 
             return response?.Data ?? new List<UptimeIncident>();
         }
-        catch
+        catch (Exception ex)
         {
-            return GetMockIncidents();
+            throw new InvalidOperationException($"Failed to get incidents: {ex.Message}", ex);
         }
     }
 
@@ -162,69 +161,6 @@ public class UptimeKumaClient
         }
     }
 
-    // Mock data for testing when real API isn't available
-    private List<UptimeMonitor> GetMockMonitors()
-    {
-        return new List<UptimeMonitor>
-        {
-            new()
-            {
-                Id = 1,
-                Name = "AdGuard Home",
-                Url = "http://localhost:3000",
-                Type = "http",
-                Status = MonitorStatus.Up,
-                UptimePercentage = 99.98m,
-                AverageResponse = 45
-            },
-            new()
-            {
-                Id = 2,
-                Name = "Tailscale VPN",
-                Url = "http://localhost:41641",
-                Type = "port",
-                Status = MonitorStatus.Up,
-                UptimePercentage = 100m,
-                AverageResponse = 12
-            },
-            new()
-            {
-                Id = 3,
-                Name = "Prometheus",
-                Url = "http://localhost:9090",
-                Type = "http",
-                Status = MonitorStatus.Down,
-                UptimePercentage = 85.5m,
-                AverageResponse = 0
-            }
-        };
-    }
-
-    private List<UptimeIncident> GetMockIncidents()
-    {
-        return new List<UptimeIncident>
-        {
-            new()
-            {
-                Id = 1,
-                MonitorName = "Prometheus",
-                Status = "down",
-                Message = "Connection refused",
-                StartedAt = DateTime.UtcNow.AddHours(-2),
-                Duration = TimeSpan.FromHours(2)
-            },
-            new()
-            {
-                Id = 2,
-                MonitorName = "AdGuard Home",
-                Status = "recovered",
-                Message = "HTTP 200 OK",
-                StartedAt = DateTime.UtcNow.AddDays(-1),
-                EndedAt = DateTime.UtcNow.AddDays(-1).AddMinutes(5),
-                Duration = TimeSpan.FromMinutes(5)
-            }
-        };
-    }
 }
 
 /// <summary>

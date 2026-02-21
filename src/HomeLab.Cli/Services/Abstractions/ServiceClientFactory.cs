@@ -1,11 +1,8 @@
 using HomeLab.Cli.Services.AdGuard;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Docker;
-using HomeLab.Cli.Services.Grafana;
 using HomeLab.Cli.Services.HomeAssistant;
 using HomeLab.Cli.Services.Ntopng;
-using HomeLab.Cli.Services.Prometheus;
-using HomeLab.Cli.Services.Speedtest;
 using HomeLab.Cli.Services.Suricata;
 using HomeLab.Cli.Services.Tailscale;
 using HomeLab.Cli.Services.Traefik;
@@ -34,26 +31,11 @@ public class ServiceClientFactory : IServiceClientFactory
         return new AdGuardClient(_configService, _httpClient);
     }
 
-    public IPrometheusClient CreatePrometheusClient()
-    {
-        return new PrometheusClient(_configService, _httpClient);
-    }
-
-    public IGrafanaClient CreateGrafanaClient()
-    {
-        return new GrafanaClient(_configService, _httpClient);
-    }
-
     public UptimeKumaClient CreateUptimeKumaClient()
     {
-        var baseUrl = "http://localhost:3001";
+        var config = _configService.GetServiceConfig("uptime_kuma");
+        var baseUrl = config?.Url ?? "http://localhost:3001";
         return new UptimeKumaClient(_httpClient, baseUrl);
-    }
-
-    public SpeedtestClient CreateSpeedtestClient()
-    {
-        var baseUrl = "http://localhost:8080";
-        return new SpeedtestClient(_httpClient, baseUrl);
     }
 
     public IHomeAssistantClient CreateHomeAssistantClient()

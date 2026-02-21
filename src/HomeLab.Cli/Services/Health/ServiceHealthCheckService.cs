@@ -107,8 +107,6 @@ public class ServiceHealthCheckService : IServiceHealthCheckService
         {
             ServiceType.Dns => _clientFactory.CreateAdGuardClient(),
             ServiceType.Vpn => _clientFactory.CreateTailscaleClient(),
-            ServiceType.Monitoring => _clientFactory.CreatePrometheusClient(),
-            ServiceType.Dashboard => _clientFactory.CreateGrafanaClient(),
             _ => null
         };
 
