@@ -47,6 +47,7 @@ public class TvScreenshotCommand : AsyncCommand<TvScreenshotCommand.Settings>
             if (string.IsNullOrEmpty(imageUrl))
             {
                 AnsiConsole.MarkupLine("[red]Failed to capture screenshot — no image URL returned.[/]");
+                AnsiConsole.MarkupLine("[dim]Try with -v flag for debug output.[/]");
                 return 1;
             }
 
@@ -82,7 +83,7 @@ public class TvScreenshotCommand : AsyncCommand<TvScreenshotCommand.Settings>
     {
         var dir = ResolveScreenshotDir();
         var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-        return Path.Combine(dir, $"tv_{timestamp}.png");
+        return Path.Combine(dir, $"tv_{timestamp}.jpg");
     }
 
     private static string ResolveScreenshotDir()

@@ -26,6 +26,7 @@ public class LgTvClient : ILgTvClient
             ""appVersion"": ""1.1"",
             ""permissions"": [
                 ""CONTROL_POWER"",
+                ""CONTROL_DISPLAY"",
                 ""CONTROL_AUDIO"",
                 ""CONTROL_INPUT_TV"",
                 ""CONTROL_INPUT_MEDIA_PLAYBACK"",
@@ -398,7 +399,10 @@ public class LgTvClient : ILgTvClient
     // Screenshot
     public async Task<string?> CaptureScreenshotAsync()
     {
-        var response = await SendRequestAsync("ssap://tv/executeOneShot", null);
+        // Request full resolution screenshot
+        var response = await SendRequestAsync("ssap://tv/executeOneShot", new { width = 1920, height = 1080, format = "jpg" });
+        Log($"  executeOneShot response: {response}");
+
         if (response.TryGetProperty("imageUri", out var uri))
         {
             return uri.GetString();
