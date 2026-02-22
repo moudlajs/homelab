@@ -77,6 +77,7 @@ public static class Program
         // Network monitoring services
         services.AddSingleton<INmapService, NmapService>();
         services.AddSingleton<INetworkAnomalyDetector, NetworkAnomalyDetector>();
+        services.AddSingleton<ISpeedtestService, SpeedtestService>();
 
         // TV control services
         services.AddSingleton<IWakeOnLanService, WakeOnLanService>();
@@ -131,6 +132,9 @@ public static class Program
 
         config.AddCommand<SelfUpdateCommand>("self-update")
             .WithDescription("Update HomeLab CLI to the latest version");
+
+        config.AddCommand<DoctorCommand>("doctor")
+            .WithDescription("Comprehensive homelab health check");
 
         config.AddCommand<TuiCommand>("tui")
             .WithAlias("ui")
@@ -268,6 +272,9 @@ public static class Program
             network.AddCommand<NetworkStatusCommand>("status")
                 .WithAlias("st")
                 .WithDescription("Comprehensive network health overview");
+            network.AddCommand<NetworkSpeedtestCommand>("speedtest")
+                .WithAlias("speed")
+                .WithDescription("Run network speed test");
             network.AddCommand<NetworkAnalyzeCommand>("analyze")
                 .WithAlias("ai")
                 .WithDescription("Analyze network trends and detect anomalies");

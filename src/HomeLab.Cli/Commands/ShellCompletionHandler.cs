@@ -13,7 +13,7 @@ public class ShellCompletionHandler : IAutoCompleteHandler
         [""] = new[]
         {
             "status", "service", "config", "logs", "image-update", "cleanup",
-            "version", "self-update", "tui",
+            "version", "self-update", "tui", "doctor",
             "vpn", "dns", "monitor", "remote", "uptime",
             "ha", "traefik", "network", "tv",
             "completion", "help", "clear", "exit"
@@ -25,7 +25,7 @@ public class ShellCompletionHandler : IAutoCompleteHandler
         ["uptime"] = new[] { "status", "alerts", "add", "remove" },
         ["ha"] = new[] { "status", "control", "get", "list" },
         ["traefik"] = new[] { "status", "routes", "services", "middlewares" },
-        ["network"] = new[] { "scan", "ports", "devices", "traffic", "intrusion", "status", "analyze" },
+        ["network"] = new[] { "scan", "ports", "devices", "traffic", "intrusion", "status", "analyze", "speedtest" },
         ["tv"] = new[] { "status", "on", "off", "setup", "apps", "launch", "key", "screen", "input", "sound", "channel", "info", "notify", "settings", "screenshot", "wake", "sleep", "debug" }
     };
 

@@ -50,7 +50,7 @@ _homelab_completions()
     _init_completion || return
 
     # Top-level commands
-    local commands=""status st service svc config logs image-update cleanup version self-update tui ui dashboard vpn dns monitor remote uptime ha traefik network tv completion shell""
+    local commands=""status st service svc config logs image-update cleanup doctor version self-update tui ui dashboard vpn dns monitor remote uptime ha traefik network tv completion shell""
 
     # VPN subcommands
     local vpn_commands=""status st up down devices ls""
@@ -74,7 +74,7 @@ _homelab_completions()
     local traefik_commands=""status st routes services middlewares mw""
 
     # Network subcommands
-    local network_commands=""scan ports devices traffic intrusion alerts status st""
+    local network_commands=""scan ports devices traffic intrusion alerts status st speedtest speed analyze""
 
     # TV subcommands
     local tv_commands=""on off apps launch key screen input sound channel info notify settings screenshot wake sleep status st setup debug""
@@ -159,6 +159,7 @@ _homelab() {
                 ""logs[View container logs]"" \
                 ""image-update[Update container images]"" \
                 ""cleanup[Clean up unused Docker resources]"" \
+                ""doctor[Comprehensive homelab health check]"" \
                 ""version[Display version information]"" \
                 ""self-update[Update HomeLab CLI to latest version]"" \
                 ""tui[Live dashboard (Terminal UI mode)]"" \
@@ -251,7 +252,10 @@ _homelab() {
                         ""intrusion[Display security alerts (Suricata IDS)]"" \
                         ""alerts[Alias for intrusion]"" \
                         ""status[Comprehensive network health overview]"" \
-                        ""st[Alias for status]""
+                        ""st[Alias for status]"" \
+                        ""speedtest[Run network speed test]"" \
+                        ""speed[Alias for speedtest]"" \
+                        ""analyze[Analyze network trends and detect anomalies]""
                     ;;
                 tv)
                     _values ""tv commands"" \
