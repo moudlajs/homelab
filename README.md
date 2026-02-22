@@ -23,6 +23,18 @@ cp publish-single/HomeLab.Cli ~/.local/bin/homelab
 
 **Requirements:** macOS ARM64, Docker (OrbStack recommended). No .NET runtime needed (self-contained binary).
 
+## Infrastructure
+
+Docker services managed via `docker-compose.yml`:
+
+| Service | Port | Description |
+|---------|------|-------------|
+| AdGuard Home | 3000, 53 | DNS ad-blocking (needs router config) |
+| ntopng | 3002 | Network traffic monitoring |
+| Suricata | — | Intrusion detection (IDS) on eth0 |
+| Scrypted | 11080 | Camera/NVR management (WebUI) |
+| Uptime Kuma | 3001 | Service uptime monitoring |
+
 ## Commands
 
 Run `homelab` with no args for interactive shell with tab completion.
@@ -41,17 +53,14 @@ homelab cleanup [--volumes]             Docker resource cleanup
 ### AI Monitoring
 
 ```
+homelab monitor report [--raw]          AI health summary (Claude Haiku)
+homelab monitor ask "<question>"        Ask AI about your homelab
 homelab monitor collect                 Capture event snapshot
 homelab monitor history [--last 24h]    Event timeline with change detection
 homelab monitor schedule install|uninstall  Periodic collection (10min)
-homelab monitor report [--raw]          AI health summary (Claude Haiku)
-homelab monitor ask "<question>"        Ask AI about your homelab
-homelab monitor alerts                  Prometheus alerts
-homelab monitor targets                 Prometheus scrape targets
-homelab monitor dashboard               Grafana dashboards
 ```
 
-Collects system metrics, Docker state, Prometheus data, and network info — sends to Claude for analysis. ~$0.001/query. Event snapshots stored on external drive with 7-day retention.
+Collects system metrics, Docker state, network info, and Suricata alerts — sends to Claude Haiku for analysis. ~$0.002/query. Event snapshots stored locally with 7-day retention.
 
 ### VPN (Tailscale)
 
@@ -89,21 +98,38 @@ homelab dns blocked [-n 20]             Top blocked domains
 homelab tv setup                        Pair with TV
 homelab tv on [--app netflix]           Wake via WOL + launch app
 homelab tv off                          Power off via WebOS API
+homelab tv status                       Connection status
 homelab tv apps                         List installed apps
 homelab tv launch <app>                 Launch app
-homelab tv key <key>                    Send remote key
-homelab tv status                       Connection status
+homelab tv key <key>                    Send remote control key
+homelab tv screen                       Turn screen off/on (no power cycle)
+homelab tv input                        List or switch HDMI inputs
+homelab tv sound                        Get or change sound output
+homelab tv channel                      List channels or tune
+homelab tv info                         System info, software version
+homelab tv notify "<message>"           Send toast notification to TV
+homelab tv settings                     Get or set TV system settings
+homelab tv debug                        Debug connection and app detection
 ```
 
 See [docs/TV_CONTROL.md](docs/TV_CONTROL.md).
+
+### Uptime Monitoring (Uptime Kuma)
+
+```
+homelab uptime status                   Service uptime dashboard
+homelab uptime alerts                   Recent incidents
+homelab uptime add <name> <url>         Add a new monitor
+homelab uptime remove <id>              Remove a monitor
+```
+
+Connects to Uptime Kuma via socket.io API. Monitors configured: ntopng, Scrypted, AdGuard Home, Kuma self.
 
 ### Other
 
 ```
 homelab ha status|control|get|list      Home Assistant
 homelab traefik status|routes|...       Traefik reverse proxy
-homelab uptime status|alerts|add|remove Uptime Kuma
-homelab speedtest run|stats             Speed testing
 homelab remote connect|list|status|...  Remote SSH management
 homelab dashboard                       Live terminal dashboard
 homelab self-update [--check]           Update CLI binary
@@ -122,15 +148,23 @@ services:
     username: "admin"
     password: "admin"
     enabled: true
-  prometheus:
-    url: "http://localhost:9090"
-    enabled: true
   ai:
     provider: "anthropic"
     model: "claude-haiku-4-5-20251001"
     token: ""  # https://console.anthropic.com/settings/keys
     enabled: true
   tailscale:
+    enabled: true
+  ntopng:
+    url: "http://localhost:3002"
+    enabled: true
+  suricata:
+    log_path: "~/Repos/homelab/data/suricata/logs/eve.json"
+    enabled: true
+  uptime_kuma:
+    url: "http://localhost:3001"
+    username: "nimda"
+    password: "nimda123"
     enabled: true
 ```
 
