@@ -395,6 +395,18 @@ public class LgTvClient : ILgTvClient
     public async Task<JsonElement> GetSystemSettingsAsync(string category, string[] keys) => await SendRequestAsync("ssap://settings/getSystemSettings", new { category, keys });
     public async Task SetSystemSettingsAsync(string category, Dictionary<string, object> settings) => await SendRequestAsync("ssap://settings/setSystemSettings", new { category, settings });
 
+    // Screenshot
+    public async Task<string?> CaptureScreenshotAsync()
+    {
+        var response = await SendRequestAsync("ssap://tv/executeOneShot", null);
+        if (response.TryGetProperty("imageUri", out var uri))
+        {
+            return uri.GetString();
+        }
+
+        return null;
+    }
+
     // Close app
     public async Task CloseAppAsync(string appId) => await SendRequestAsync("ssap://system.launcher/close", new { id = appId });
 
