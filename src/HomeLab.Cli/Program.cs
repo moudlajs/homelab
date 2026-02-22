@@ -306,6 +306,9 @@ public static class Program
                 .WithDescription("Send a toast notification to the TV screen");
             tv.AddCommand<TvSettingsCommand>("settings")
                 .WithDescription("Get or set TV system settings");
+            tv.AddCommand<TvScreenshotCommand>("screenshot")
+                .WithAlias("ss")
+                .WithDescription("Capture screenshot of TV screen");
             tv.AddCommand<TvWakeCommand>("wake")
                 .WithDescription("Wake TV from screensaver");
             tv.AddCommand<TvSleepCommand>("sleep")
