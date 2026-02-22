@@ -43,8 +43,8 @@ public class NetworkSpeedtestCommand : AsyncCommand<NetworkSpeedtestCommand.Sett
     {
         if (!_speedtest.IsInstalled())
         {
-            AnsiConsole.MarkupLine("[red]speedtest-cli is not installed.[/]");
-            AnsiConsole.MarkupLine("[dim]Install with: brew install speedtest-cli[/]");
+            AnsiConsole.MarkupLine("[red]No speedtest tool installed.[/]");
+            AnsiConsole.MarkupLine("[dim]Install with: brew tap teamookla/speedtest && brew install speedtest[/]");
             return 1;
         }
 

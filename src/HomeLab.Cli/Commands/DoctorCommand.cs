@@ -309,11 +309,11 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
 
         if (_speedtest.IsInstalled())
         {
-            PrintPass("speedtest-cli installed");
+            PrintPass("speedtest installed");
         }
         else
         {
-            PrintWarn("speedtest-cli not installed (brew install speedtest-cli)");
+            PrintWarn("speedtest not installed (brew tap teamookla/speedtest && brew install speedtest)");
         }
     }
 
