@@ -5,6 +5,47 @@ All notable changes to the HomeLab CLI project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] - 2026-02-22
+
+### Added - Speedtest, Doctor & TV Features
+
+#### Network Speed Test
+- **`homelab network speedtest`** — run real speed test with bar chart visualization (download/upload/latency)
+- **`homelab network speedtest --history [--last 7d|30d]`** — view past results with averages
+- Supports both official **Ookla speedtest** binary and legacy **speedtest-cli** (auto-detected)
+- Results saved to event log for historical tracking
+- Shows server, ISP, and public IP
+
+#### Doctor Command
+- **`homelab doctor`** — comprehensive health check across 7 categories
+- **System**: disk usage, memory, uptime
+- **Docker**: daemon reachable, container status
+- **Services**: health check each running service
+- **Network**: internet connectivity, DNS resolution
+- **Config**: config file validation, AI token, credentials
+- **Tools**: nmap, tailscale, speedtest installed
+- **VPN**: Tailscale connection status
+- Pass/warn/fail summary with color-coded output
+
+#### TV Wake & Sleep
+- **`homelab tv wake`** — detect and wake TV from screensaver
+- **`homelab tv sleep [minutes|off]`** — get or set sleep timer (15/30/60/90/120/180/240 min)
+
+#### TV Screenshot
+- **`homelab tv screenshot [--output path]`** — capture TV screen to disk
+- Saves to `/Volumes/T9/.homelab/screenshots/` with fallback to `~/.homelab/screenshots/`
+- Note: DRM/HDCP content (streaming apps, HDMI) renders as black — WebOS limitation
+
+### Fixed
+- **Shell Ctrl+C exit** — double-press Ctrl+C now properly exits the shell
+- **Speedtest 403 error** — legacy Python speedtest-cli blocked by Ookla, added official binary support
+- **TV screenshot permissions** — added `CONTROL_DISPLAY` to WebOS registration manifest
+
+### Changed
+- Uptime Kuma client rewritten to use socket.io protocol
+- README updated with all current commands and infrastructure
+- Cleanup of unused Prometheus/Grafana references
+
 ## [1.14.0] - 2026-02-20
 
 ### Added - Extended TV Controls
@@ -678,6 +719,9 @@ Monitor internet connection speed over time:
 
 ---
 
+[1.15.0]: https://github.com/moudlajs/homelab/compare/v1.14.0...v1.15.0
+[1.14.0]: https://github.com/moudlajs/homelab/compare/v1.13.0...v1.14.0
+[1.13.0]: https://github.com/moudlajs/homelab/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/moudlajs/homelab/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/moudlajs/homelab/compare/v1.8.0...v1.11.0
 [1.8.0]: https://github.com/moudlajs/homelab/compare/v1.7.0...v1.8.0
