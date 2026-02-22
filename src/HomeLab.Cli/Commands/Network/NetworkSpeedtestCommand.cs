@@ -87,6 +87,7 @@ public class NetworkSpeedtestCommand : AsyncCommand<NetworkSpeedtestCommand.Sett
         grid.AddRow("[dim]Latency:[/]", $"[cyan]{result.PingMs:F0} ms[/]");
         grid.AddRow("[dim]Server:[/]", result.Server);
         grid.AddRow("[dim]ISP:[/]", result.Isp);
+        grid.AddRow("[dim]IP:[/]", result.Ip);
         AnsiConsole.Write(grid);
 
         // Save to event log
