@@ -12,6 +12,7 @@ public class EventLogEntry
     public TailscaleSnapshot? Tailscale { get; set; }
     public DockerSnapshot? Docker { get; set; }
     public NetworkSnapshot? Network { get; set; }
+    public SpeedtestSnapshot? Speedtest { get; set; }
     public List<ServiceHealthEntry> Services { get; set; } = new();
     public List<string> Errors { get; set; } = new();
 }
@@ -112,6 +113,15 @@ public class NetworkAnomaly
     public string Severity { get; set; } = "info";
     public string Description { get; set; } = string.Empty;
     public Dictionary<string, string> Details { get; set; } = new();
+}
+
+public class SpeedtestSnapshot
+{
+    public double DownloadMbps { get; set; }
+    public double UploadMbps { get; set; }
+    public double PingMs { get; set; }
+    public string Server { get; set; } = string.Empty;
+    public string Isp { get; set; } = string.Empty;
 }
 
 public class ServiceHealthEntry
