@@ -26,7 +26,7 @@ public class ShellCompletionHandler : IAutoCompleteHandler
         ["ha"] = new[] { "status", "control", "get", "list" },
         ["traefik"] = new[] { "status", "routes", "services", "middlewares" },
         ["network"] = new[] { "scan", "ports", "devices", "traffic", "intrusion", "status", "analyze" },
-        ["tv"] = new[] { "status", "on", "off", "setup", "apps", "launch", "key", "screen", "input", "sound", "channel", "info", "notify", "settings", "debug" }
+        ["tv"] = new[] { "status", "on", "off", "setup", "apps", "launch", "key", "screen", "input", "sound", "channel", "info", "notify", "settings", "wake", "sleep", "debug" }
     };
 
     public string[] GetSuggestions(string text, int index)
