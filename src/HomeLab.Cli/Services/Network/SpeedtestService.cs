@@ -80,10 +80,18 @@ public class SpeedtestService : ISpeedtestService
         }
 
         var isp = "";
-        if (json.TryGetProperty("client", out var clientObj) &&
-            clientObj.TryGetProperty("isp", out var ispProp))
+        var ip = "";
+        if (json.TryGetProperty("client", out var clientObj))
         {
-            isp = ispProp.GetString() ?? "";
+            if (clientObj.TryGetProperty("isp", out var ispProp))
+            {
+                isp = ispProp.GetString() ?? "";
+            }
+
+            if (clientObj.TryGetProperty("ip", out var ipProp))
+            {
+                ip = ipProp.GetString() ?? "";
+            }
         }
 
         return new SpeedtestSnapshot
@@ -92,7 +100,8 @@ public class SpeedtestService : ISpeedtestService
             UploadMbps = Math.Round(uploadBps / 1_000_000, 2),
             PingMs = Math.Round(ping, 1),
             Server = server,
-            Isp = isp
+            Isp = isp,
+            Ip = ip
         };
     }
 }

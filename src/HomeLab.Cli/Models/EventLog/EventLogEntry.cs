@@ -122,6 +122,7 @@ public class SpeedtestSnapshot
     public double PingMs { get; set; }
     public string Server { get; set; } = string.Empty;
     public string Isp { get; set; } = string.Empty;
+    public string Ip { get; set; } = string.Empty;
 }
 
 public class ServiceHealthEntry
