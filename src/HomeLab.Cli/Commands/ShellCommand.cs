@@ -34,7 +34,8 @@ public class ShellCommand : Command<ShellCommand.Settings>
         {
             if (lastCtrlC.HasValue && (DateTime.Now - lastCtrlC.Value).TotalSeconds < 2)
             {
-                e.Cancel = false;
+                AnsiConsole.MarkupLine("[dim]Bye![/]");
+                Environment.Exit(0);
                 return;
             }
 
