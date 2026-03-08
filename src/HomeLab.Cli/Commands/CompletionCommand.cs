@@ -50,7 +50,7 @@ _homelab_completions()
     _init_completion || return
 
     # Top-level commands
-    local commands=""status st service svc config logs image-update cleanup doctor version self-update tui ui dashboard vpn dns monitor remote uptime ha traefik network tv completion shell""
+    local commands=""status st service svc config logs image-update cleanup doctor version self-update tui ui dashboard vpn dns monitor remote uptime ha traefik network tv bot completion shell""
 
     # VPN subcommands
     local vpn_commands=""status st up down devices ls""
@@ -116,6 +116,9 @@ _homelab_completions()
             tv)
                 COMPREPLY=( $(compgen -W ""$tv_commands"" -- ""$cur"") )
                 ;;
+            bot)
+                COMPREPLY=( $(compgen -W ""start setup schedule"" -- ""$cur"") )
+                ;;
             completion)
                 COMPREPLY=( $(compgen -W ""bash zsh"" -- ""$cur"") )
                 ;;
@@ -174,6 +177,7 @@ _homelab() {
                 ""traefik[Manage Traefik reverse proxy]"" \
                 ""network[Network scanning and monitoring]"" \
                 ""tv[Control LG WebOS Smart TV]"" \
+                ""bot[Telegram bot for remote control]"" \
                 ""shell[Interactive shell mode]"" \
                 ""completion[Generate shell completion scripts]""
             ;;
@@ -279,6 +283,13 @@ _homelab() {
                         ""st[Alias for status]"" \
                         ""setup[Configure and pair with TV]"" \
                         ""debug[Debug TV connection]""
+                    ;;
+                bot)
+                    _values ""bot commands"" \
+                        ""start[Start the Telegram bot]"" \
+                        ""setup[Configure bot token and user]"" \
+                        ""schedule[Manage bot daemon (LaunchAgent)]"" \
+                        ""sched[Alias for schedule]""
                     ;;
                 completion)
                     _values ""shell types"" \
