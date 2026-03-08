@@ -146,7 +146,7 @@ public class TelegramBotService : ITelegramBotService
             /status — Homelab overview
             /doctor — Health check
             /tv — TV status
-            /tv_on — Turn TV on
+            /tv_on — Turn TV on + launch default app
             /tv_off — Turn TV off
             /tv_app <i>name</i> — Launch TV app
             /speedtest — Run speed test
@@ -322,6 +322,19 @@ public class TelegramBotService : ITelegramBotService
 
                 try
                 {
+                    var channel = await client.GetCurrentChannelAsync();
+                    var channelName = channel.TryGetProperty("channelName", out var cn) ? cn.GetString() : null;
+                    var channelNumber = channel.TryGetProperty("channelNumber", out var cnum) ? cnum.GetString() : null;
+                    if (!string.IsNullOrEmpty(channelName))
+                    {
+                        var chDisplay = string.IsNullOrEmpty(channelNumber) ? channelName : $"{channelName} ({channelNumber})";
+                        sb.AppendLine($"Channel: {Esc(chDisplay)}");
+                    }
+                }
+                catch { }
+
+                try
+                {
                     var volume = await client.GetVolumeAsync();
                     sb.AppendLine($"Volume: {volume}");
                 }
@@ -344,7 +357,70 @@ public class TelegramBotService : ITelegramBotService
         }
 
         var sent = await _wolService.WakeAsync(config.MacAddress);
-        return sent ? "✅ Wake-on-LAN packet sent. TV should turn on shortly." : "❌ Failed to send WOL packet.";
+        if (!sent)
+        {
+            return "❌ Failed to send WOL packet.";
+        }
+
+        var sb = new StringBuilder("✅ Wake-on-LAN sent.\n");
+
+        // Wait for TV to come online
+        var bootTimeout = DateTime.Now.AddSeconds(15);
+        var isOnline = false;
+        while (DateTime.Now < bootTimeout)
+        {
+            await Task.Delay(2000);
+            if (await _wolService.IsReachableAsync(config.IpAddress))
+            {
+                isOnline = true;
+                break;
+            }
+        }
+
+        if (!isOnline)
+        {
+            sb.AppendLine("TV may still be booting...");
+            return sb.ToString();
+        }
+
+        sb.AppendLine("🟢 TV is online.");
+
+        // Launch default app if configured
+        if (!string.IsNullOrEmpty(config.DefaultApp) && !string.IsNullOrEmpty(config.ClientKey))
+        {
+            await Task.Delay(3000);
+            try
+            {
+                var client = TvCommandHelper.CreateClient();
+                await client.ConnectAsync(config.IpAddress, config.ClientKey);
+                var apps = await client.GetAppsAsync();
+                var match = apps.FirstOrDefault(a =>
+                    a.Id.Equals(config.DefaultApp, StringComparison.OrdinalIgnoreCase) ||
+                    a.Name.Contains(config.DefaultApp, StringComparison.OrdinalIgnoreCase));
+
+                if (match != null)
+                {
+                    await client.LaunchAppAsync(match.Id);
+                    sb.AppendLine($"📺 Launched {Esc(match.Name)}");
+
+                    var ready = await client.WaitForAppAsync(match.Id, 30);
+                    if (ready)
+                    {
+                        await Task.Delay(3000);
+                        await client.SendKeyAsync("ENTER");
+                        sb.AppendLine("⏎ Sent ENTER");
+                    }
+                }
+
+                await client.DisconnectAsync();
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine($"⚠️ App launch failed: {Esc(ex.Message)}");
+            }
+        }
+
+        return sb.ToString();
     }
 
     private async Task<string> HandleTvOffAsync()
