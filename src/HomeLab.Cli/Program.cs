@@ -1,4 +1,5 @@
 using HomeLab.Cli.Commands;
+using HomeLab.Cli.Commands.Bot;
 using HomeLab.Cli.Commands.Dns;
 using HomeLab.Cli.Commands.HomeAssistant;
 using HomeLab.Cli.Commands.Monitor;
@@ -10,6 +11,7 @@ using HomeLab.Cli.Commands.Uptime;
 using HomeLab.Cli.Commands.Vpn;
 using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.AI;
+using HomeLab.Cli.Services.Bot;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.EventLog;
@@ -85,6 +87,9 @@ public static class Program
         // Event log services
         services.AddSingleton<IEventLogService, EventLogService>();
         services.AddSingleton<IEventCollector, EventCollector>();
+
+        // Telegram bot
+        services.AddSingleton<ITelegramBotService, TelegramBotService>();
 
         var registrar = new TypeRegistrar(services);
         var app = new CommandApp(registrar);
@@ -322,6 +327,19 @@ public static class Program
                 .WithDescription("Get or set sleep timer");
             tv.AddCommand<TvDebugCommand>("debug")
                 .WithDescription("Debug TV connection and app detection");
+        });
+
+        // Telegram Bot
+        config.AddBranch("bot", bot =>
+        {
+            bot.SetDescription("Telegram bot for remote control");
+            bot.AddCommand<BotStartCommand>("start")
+                .WithDescription("Start the Telegram bot (long-running)");
+            bot.AddCommand<BotSetupCommand>("setup")
+                .WithDescription("Configure Telegram bot token and user");
+            bot.AddCommand<BotScheduleCommand>("schedule")
+                .WithAlias("sched")
+                .WithDescription("Manage bot daemon (LaunchAgent)");
         });
 
         // Shell completion
