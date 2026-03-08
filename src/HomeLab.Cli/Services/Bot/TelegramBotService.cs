@@ -5,6 +5,7 @@ using HomeLab.Cli.Services.Abstractions;
 using HomeLab.Cli.Services.Configuration;
 using HomeLab.Cli.Services.Docker;
 using HomeLab.Cli.Services.LgTv;
+using HomeLab.Cli.Services.Network;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -19,6 +20,8 @@ public class TelegramBotService : ITelegramBotService
     private readonly ISpeedtestService _speedtestService;
     private readonly IWakeOnLanService _wolService;
     private readonly ILlmService _llmService;
+    private readonly INmapService _nmapService;
+    private readonly ISystemDataCollector _dataCollector;
     private readonly string _botToken;
     private readonly HashSet<long> _allowedUsers;
 
@@ -27,13 +30,17 @@ public class TelegramBotService : ITelegramBotService
         IDockerService dockerService,
         ISpeedtestService speedtestService,
         IWakeOnLanService wolService,
-        ILlmService llmService)
+        ILlmService llmService,
+        INmapService nmapService,
+        ISystemDataCollector dataCollector)
     {
         _configService = configService;
         _dockerService = dockerService;
         _speedtestService = speedtestService;
         _wolService = wolService;
         _llmService = llmService;
+        _nmapService = nmapService;
+        _dataCollector = dataCollector;
 
         var config = configService.GetServiceConfig("telegram");
         _botToken = config.Token ?? string.Empty;
@@ -66,18 +73,17 @@ public class TelegramBotService : ITelegramBotService
             try
             {
                 var response = await HandleMessageAsync(message.Text);
-                // Telegram message limit is 4096 chars
                 if (response.Length > 4000)
                 {
                     response = response[..4000] + "\n...truncated";
                 }
-                await client.SendMessage(message.Chat.Id, response, parseMode: ParseMode.Markdown, cancellationToken: default);
+                await client.SendMessage(message.Chat.Id, response, parseMode: ParseMode.Html, cancellationToken: default);
             }
             catch (Exception ex)
             {
                 try
                 {
-                    await client.SendMessage(message.Chat.Id, $"Error: {ex.Message}", cancellationToken: default);
+                    await client.SendMessage(message.Chat.Id, $"Error: {Esc(ex.Message)}", cancellationToken: default);
                 }
                 catch
                 {
@@ -86,7 +92,6 @@ public class TelegramBotService : ITelegramBotService
             }
         };
 
-        // Keep alive until cancelled
         try
         {
             await Task.Delay(Timeout.Infinite, cancellationToken);
@@ -101,12 +106,10 @@ public class TelegramBotService : ITelegramBotService
     {
         var trimmed = text.Trim();
 
-        // Slash commands
         if (trimmed.StartsWith('/'))
         {
             var parts = trimmed.Split(' ', 2);
-            var command = parts[0].ToLowerInvariant().TrimEnd('@'); // Remove @botname suffix
-            // Also strip the bot username if present (e.g. /help@homelab_bot -> /help)
+            var command = parts[0].ToLowerInvariant();
             var atIndex = command.IndexOf('@');
             if (atIndex > 0)
             {
@@ -126,42 +129,44 @@ public class TelegramBotService : ITelegramBotService
                 "/tv_app" => await HandleTvAppAsync(args),
                 "/speedtest" => await HandleSpeedtestAsync(),
                 "/vpn" => await HandleVpnAsync(),
-                _ => $"Unknown command: {command}\n\n{GetHelpText()}"
+                "/network" => await HandleNetworkAsync(),
+                "/monitor" => await HandleMonitorAsync(),
+                _ => $"Unknown command: {Esc(command)}\n\n{GetHelpText()}"
             };
         }
 
-        // Natural language — route through AI
         return await HandleNaturalLanguageAsync(trimmed);
     }
 
     private static string GetHelpText()
     {
         return """
-            *HomeLab Bot*
+            <b>HomeLab Bot</b>
 
             /status — Homelab overview
             /doctor — Health check
             /tv — TV status
-            /tv\_on — Turn TV on
-            /tv\_off — Turn TV off
-            /tv\_app _name_ — Launch TV app
+            /tv_on — Turn TV on
+            /tv_off — Turn TV off
+            /tv_app <i>name</i> — Launch TV app
             /speedtest — Run speed test
             /vpn — VPN status
+            /network — Network devices
+            /monitor — AI health report
             /help — This message
 
-            Or just type naturally: _"is everything ok?"_
+            Or just type naturally: <i>"is everything ok?"</i>
             """;
     }
 
     private async Task<string> HandleStatusAsync()
     {
-        var sb = new StringBuilder("*Homelab Status*\n\n");
+        var sb = new StringBuilder("<b>Homelab Status</b>\n\n");
 
-        // System info
         try
         {
             var (cpu, mem, disk) = await GetSystemMetricsAsync();
-            sb.AppendLine("*System*");
+            sb.AppendLine("<b>System</b>");
             sb.AppendLine($"CPU: {cpu}%");
             sb.AppendLine($"Memory: {mem}%");
             sb.AppendLine($"Disk: {disk}%");
@@ -169,32 +174,31 @@ public class TelegramBotService : ITelegramBotService
         }
         catch
         {
-            sb.AppendLine("_System metrics unavailable_\n");
+            sb.AppendLine("<i>System metrics unavailable</i>\n");
         }
 
-        // Docker
         try
         {
             if (await _dockerService.IsDockerAvailableAsync())
             {
                 var containers = await _dockerService.ListContainersAsync();
-                sb.AppendLine("*Docker*");
+                sb.AppendLine("<b>Docker</b>");
                 var running = containers.Count(c => c.IsRunning);
                 sb.AppendLine($"{running}/{containers.Count} containers running");
                 foreach (var c in containers)
                 {
                     var icon = c.IsRunning ? "✅" : "❌";
-                    sb.AppendLine($"  {icon} {c.Name}");
+                    sb.AppendLine($"  {icon} {Esc(c.Name)}");
                 }
             }
             else
             {
-                sb.AppendLine("_Docker not available_");
+                sb.AppendLine("<i>Docker not available</i>");
             }
         }
         catch
         {
-            sb.AppendLine("_Docker info unavailable_");
+            sb.AppendLine("<i>Docker info unavailable</i>");
         }
 
         return sb.ToString();
@@ -202,13 +206,12 @@ public class TelegramBotService : ITelegramBotService
 
     private async Task<string> HandleDoctorAsync()
     {
-        var sb = new StringBuilder("*HomeLab Doctor*\n\n");
+        var sb = new StringBuilder("<b>HomeLab Doctor</b>\n\n");
         var pass = 0;
         var warn = 0;
         var fail = 0;
 
-        // System
-        sb.AppendLine("*System*");
+        sb.AppendLine("<b>System</b>");
         try
         {
             var (cpu, mem, disk) = await GetSystemMetricsAsync();
@@ -224,8 +227,7 @@ public class TelegramBotService : ITelegramBotService
             sb.AppendLine("❌ System metrics unavailable"); fail++;
         }
 
-        // Docker
-        sb.AppendLine("\n*Docker*");
+        sb.AppendLine($"\n<b>Docker</b>");
         try
         {
             if (await _dockerService.IsDockerAvailableAsync())
@@ -234,8 +236,8 @@ public class TelegramBotService : ITelegramBotService
                 var containers = await _dockerService.ListContainersAsync();
                 foreach (var c in containers)
                 {
-                    if (c.IsRunning) { sb.AppendLine($"✅ {c.Name}"); pass++; }
-                    else { sb.AppendLine($"❌ {c.Name}"); fail++; }
+                    if (c.IsRunning) { sb.AppendLine($"✅ {Esc(c.Name)}"); pass++; }
+                    else { sb.AppendLine($"❌ {Esc(c.Name)}"); fail++; }
                 }
             }
             else
@@ -248,8 +250,7 @@ public class TelegramBotService : ITelegramBotService
             sb.AppendLine("❌ Docker check failed"); fail++;
         }
 
-        // Network
-        sb.AppendLine("\n*Network*");
+        sb.AppendLine($"\n<b>Network</b>");
         try
         {
             var pingResult = await RunProcessAsync("ping", "-c 1 -W 3 1.1.1.1");
@@ -261,8 +262,7 @@ public class TelegramBotService : ITelegramBotService
             sb.AppendLine("❌ Ping failed"); fail++;
         }
 
-        // Tools
-        sb.AppendLine("\n*Tools*");
+        sb.AppendLine($"\n<b>Tools</b>");
         var tools = new[] { "nmap", "tailscale", "speedtest" };
         foreach (var tool in tools)
         {
@@ -278,7 +278,7 @@ public class TelegramBotService : ITelegramBotService
             }
         }
 
-        sb.AppendLine($"\n*Result:* {pass} passed, {warn} warnings, {fail} failed");
+        sb.AppendLine($"\n<b>Result:</b> {pass} passed, {warn} warnings, {fail} failed");
         return sb.ToString();
     }
 
@@ -287,11 +287,11 @@ public class TelegramBotService : ITelegramBotService
         var config = await TvCommandHelper.LoadTvConfigAsync();
         if (config == null)
         {
-            return "TV not configured. Run `homelab tv setup` first.";
+            return "TV not configured. Run <code>homelab tv setup</code> first.";
         }
 
         var isOnline = await _wolService.IsReachableAsync(config.IpAddress, 3000);
-        var sb = new StringBuilder($"*{config.Name}*\n\n");
+        var sb = new StringBuilder($"<b>{Esc(config.Name)}</b>\n\n");
         sb.AppendLine($"Status: {(isOnline ? "🟢 Online" : "🔴 Offline")}");
         sb.AppendLine($"IP: {config.IpAddress}");
 
@@ -317,7 +317,7 @@ public class TelegramBotService : ITelegramBotService
                         }
                     }
                     catch { }
-                    sb.AppendLine($"App: {appName}");
+                    sb.AppendLine($"App: {Esc(appName)}");
                 }
 
                 try
@@ -370,7 +370,7 @@ public class TelegramBotService : ITelegramBotService
         }
         catch (Exception ex)
         {
-            return $"❌ Failed: {ex.Message}";
+            return $"❌ Failed: {Esc(ex.Message)}";
         }
     }
 
@@ -378,7 +378,7 @@ public class TelegramBotService : ITelegramBotService
     {
         if (string.IsNullOrWhiteSpace(appNameOrId))
         {
-            return "Usage: /tv\\_app <app name or ID>\n\nExample: /tv\\_app Netflix";
+            return "Usage: /tv_app &lt;app name or ID&gt;\n\nExample: /tv_app Netflix";
         }
 
         var config = await TvCommandHelper.LoadTvConfigAsync();
@@ -397,7 +397,6 @@ public class TelegramBotService : ITelegramBotService
             var client = TvCommandHelper.CreateClient();
             await client.ConnectAsync(config.IpAddress, config.ClientKey);
 
-            // Find app by name or ID
             var apps = await client.GetAppsAsync();
             var app = apps.FirstOrDefault(a =>
                 a.Id.Equals(appNameOrId, StringComparison.OrdinalIgnoreCase) ||
@@ -406,17 +405,17 @@ public class TelegramBotService : ITelegramBotService
             if (app == null)
             {
                 await client.DisconnectAsync();
-                var available = string.Join("\n", apps.OrderBy(a => a.Name).Select(a => $"  {a.Name}"));
-                return $"App not found: {appNameOrId}\n\nAvailable apps:\n{available}";
+                var available = string.Join("\n", apps.OrderBy(a => a.Name).Select(a => $"  {Esc(a.Name)}"));
+                return $"App not found: {Esc(appNameOrId)}\n\nAvailable apps:\n{available}";
             }
 
             await client.LaunchAppAsync(app.Id);
             await client.DisconnectAsync();
-            return $"✅ Launched {app.Name}";
+            return $"✅ Launched {Esc(app.Name)}";
         }
         catch (Exception ex)
         {
-            return $"❌ Failed: {ex.Message}";
+            return $"❌ Failed: {Esc(ex.Message)}";
         }
     }
 
@@ -430,18 +429,18 @@ public class TelegramBotService : ITelegramBotService
         try
         {
             var result = await _speedtestService.RunAsync();
-            var sb = new StringBuilder("*Speed Test Results*\n\n");
-            sb.AppendLine($"⬇️ Download: *{result.DownloadMbps:F1} Mbps*");
-            sb.AppendLine($"⬆️ Upload: *{result.UploadMbps:F1} Mbps*");
-            sb.AppendLine($"🏓 Latency: *{result.PingMs:F0} ms*");
-            sb.AppendLine($"Server: {result.Server}");
-            sb.AppendLine($"ISP: {result.Isp}");
+            var sb = new StringBuilder("<b>Speed Test Results</b>\n\n");
+            sb.AppendLine($"⬇️ Download: <b>{result.DownloadMbps:F1} Mbps</b>");
+            sb.AppendLine($"⬆️ Upload: <b>{result.UploadMbps:F1} Mbps</b>");
+            sb.AppendLine($"🏓 Latency: <b>{result.PingMs:F0} ms</b>");
+            sb.AppendLine($"Server: {Esc(result.Server)}");
+            sb.AppendLine($"ISP: {Esc(result.Isp)}");
             sb.AppendLine($"IP: {result.Ip}");
             return sb.ToString();
         }
         catch (Exception ex)
         {
-            return $"❌ Speed test failed: {ex.Message}";
+            return $"❌ Speed test failed: {Esc(ex.Message)}";
         }
     }
 
@@ -457,8 +456,8 @@ public class TelegramBotService : ITelegramBotService
 
             var json = System.Text.Json.JsonDocument.Parse(result.output).RootElement;
             var state = json.TryGetProperty("BackendState", out var bs) ? bs.GetString() : "Unknown";
-            var sb = new StringBuilder("*VPN Status*\n\n");
-            sb.AppendLine($"State: {state}");
+            var sb = new StringBuilder("<b>VPN Status</b>\n\n");
+            sb.AppendLine($"State: {Esc(state)}");
 
             if (json.TryGetProperty("Self", out var self))
             {
@@ -491,6 +490,61 @@ public class TelegramBotService : ITelegramBotService
         }
     }
 
+    private async Task<string> HandleNetworkAsync()
+    {
+        try
+        {
+            if (!_nmapService.IsNmapAvailable())
+            {
+                return "❌ nmap is not installed.";
+            }
+
+            var devices = await _nmapService.ScanNetworkAsync("192.168.1.0/24", quickScan: true);
+            var sb = new StringBuilder("<b>Network Devices</b>\n\n");
+            sb.AppendLine($"Found {devices.Count} devices:\n");
+            foreach (var d in devices.Take(20))
+            {
+                var name = !string.IsNullOrEmpty(d.Hostname) ? Esc(d.Hostname) : "<i>unknown</i>";
+                sb.AppendLine($"  {d.IpAddress} — {name}");
+            }
+            if (devices.Count > 20)
+            {
+                sb.AppendLine($"\n  ...and {devices.Count - 20} more");
+            }
+            return sb.ToString();
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Network scan failed: {Esc(ex.Message)}";
+        }
+    }
+
+    private async Task<string> HandleMonitorAsync()
+    {
+        try
+        {
+            if (!await _llmService.IsAvailableAsync())
+            {
+                return "❌ AI service not configured.";
+            }
+
+            var snapshot = await _dataCollector.CollectAsync();
+            var prompt = _dataCollector.FormatAsPrompt(snapshot);
+            var systemPrompt = "You are a concise homelab health analyst. Summarize the system state in 5-10 bullet points. Flag any issues. Keep it short — this goes to a Telegram message. Do NOT use markdown formatting, use plain text only.";
+            var response = await _llmService.SendMessageAsync(systemPrompt, prompt, 500);
+            if (!response.Success)
+            {
+                return $"❌ AI error: {Esc(response.Error ?? "unknown")}";
+            }
+
+            return $"<b>AI Health Report</b>\n\n{Esc(response.Content ?? "No response")}";
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Monitor failed: {Esc(ex.Message)}";
+        }
+    }
+
     private async Task<string> HandleNaturalLanguageAsync(string text)
     {
         if (!await _llmService.IsAvailableAsync())
@@ -509,6 +563,8 @@ public class TelegramBotService : ITelegramBotService
             TV_APP <name> - to launch a TV app (include the app name)
             SPEEDTEST - to run internet speed test
             VPN - for VPN/Tailscale status
+            NETWORK - for network device scan
+            MONITOR - for AI health report
             HELP - if unclear or unrelated to homelab
             """;
 
@@ -535,8 +591,23 @@ public class TelegramBotService : ITelegramBotService
             "TV_OFF" => await HandleTvOffAsync(),
             "SPEEDTEST" => await HandleSpeedtestAsync(),
             "VPN" => await HandleVpnAsync(),
+            "NETWORK" => await HandleNetworkAsync(),
+            "MONITOR" => await HandleMonitorAsync(),
             _ => GetHelpText()
         };
+    }
+
+    /// <summary>
+    /// Escapes HTML special characters for Telegram HTML parse mode.
+    /// </summary>
+    private static string Esc(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return string.Empty;
+        }
+
+        return text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
     }
 
     private static async Task<(int exitCode, string output)> RunProcessAsync(string fileName, string arguments)
