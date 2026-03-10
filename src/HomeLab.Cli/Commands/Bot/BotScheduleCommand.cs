@@ -11,12 +11,9 @@ public class BotScheduleCommand : Command<BotScheduleCommand.Settings>
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
         "Library", "LaunchAgents", "com.homelab.bot.plist");
 
-    private const string ExternalDrivePath = "/Volumes/T9";
-
-    private static readonly string LogPath = Directory.Exists(ExternalDrivePath)
-        ? Path.Combine(ExternalDrivePath, ".homelab", "bot.log")
-        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".homelab", "bot.log");
+    private static readonly string LogPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        ".homelab", "bot.log");
 
     public class Settings : CommandSettings
     {
