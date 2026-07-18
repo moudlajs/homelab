@@ -26,17 +26,13 @@ outputs:
         - dns
         - tls
         - http
-        - stats:
-            totals: yes
-            threads: no
-            deltas: no
 
   - fast:
       enabled: yes
       filename: fast.log
 
   - stats:
-      enabled: yes
+      enabled: no
       filename: stats.log
       append: yes
       totals: yes
