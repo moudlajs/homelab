@@ -24,7 +24,7 @@ public class TvStatusCommand : AsyncCommand<TvStatusCommand.Settings>
         bool isOnline = false;
         await AnsiConsole.Status().Spinner(Spinner.Known.Dots).StartAsync("Checking...", async _ =>
         {
-            isOnline = await _wolService.IsReachableAsync(config.IpAddress, 3000);
+            isOnline = await TvCommandHelper.IsTvOnlineAsync(_wolService, config.IpAddress, 3000);
         });
 
         var table = new Table().Border(TableBorder.Rounded).AddColumn("Property").AddColumn("Value");

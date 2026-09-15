@@ -290,7 +290,7 @@ public class TelegramBotService : ITelegramBotService
             return "TV not configured. Run <code>homelab tv setup</code> first.";
         }
 
-        var isOnline = await _wolService.IsReachableAsync(config.IpAddress, 3000);
+        var isOnline = await TvCommandHelper.IsTvOnlineAsync(_wolService, config.IpAddress, 3000);
         var sb = new StringBuilder($"<b>{Esc(config.Name)}</b>\n\n");
         sb.AppendLine($"Status: {(isOnline ? "🟢 Online" : "🔴 Offline")}");
         sb.AppendLine($"IP: {config.IpAddress}");
@@ -370,7 +370,7 @@ public class TelegramBotService : ITelegramBotService
         while (DateTime.Now < bootTimeout)
         {
             await Task.Delay(2000);
-            if (await _wolService.IsReachableAsync(config.IpAddress))
+            if (await TvCommandHelper.IsTvOnlineAsync(_wolService, config.IpAddress))
             {
                 isOnline = true;
                 break;

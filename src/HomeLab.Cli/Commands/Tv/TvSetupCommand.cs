@@ -49,7 +49,7 @@ public class TvSetupCommand : AsyncCommand<TvSetupCommand.Settings>
         var name = settings.Name ?? AnsiConsole.Prompt(new TextPrompt<string>("Friendly name:").DefaultValue(defaultName));
 
         AnsiConsole.MarkupLine("[bold]Step 1:[/] Testing connectivity...");
-        var isReachable = await _wolService.IsReachableAsync(ipAddress);
+        var isReachable = await TvCommandHelper.IsTvOnlineAsync(_wolService, ipAddress);
         if (!isReachable)
         {
             AnsiConsole.MarkupLine("[yellow]TV is not reachable. It may be off.[/]");

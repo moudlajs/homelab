@@ -49,6 +49,22 @@ public class WakeOnLanService : IWakeOnLanService
         }
     }
 
+    public async Task<bool> IsPortOpenAsync(string ipAddress, int port, int timeoutMs = 3000)
+    {
+        try
+        {
+            using var tcpClient = new TcpClient();
+            using var cts = new CancellationTokenSource(timeoutMs);
+
+            await tcpClient.ConnectAsync(ipAddress, port, cts.Token);
+            return tcpClient.Connected;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static byte[] ParseMacAddress(string macAddress)
     {
         var cleanMac = macAddress.Replace(":", "").Replace("-", "").Replace(" ", "").ToUpperInvariant();
