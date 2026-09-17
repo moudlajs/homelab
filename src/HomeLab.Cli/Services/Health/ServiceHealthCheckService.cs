@@ -103,18 +103,51 @@ public class ServiceHealthCheckService : IServiceHealthCheckService
     /// </summary>
     private async Task<ServiceHealthInfo?> CheckServiceSpecificHealthAsync(ServiceDefinition service)
     {
-        IServiceClient? client = service.Type switch
-        {
-            ServiceType.Dns => _clientFactory.CreateAdGuardClient(),
-            ServiceType.Vpn => _clientFactory.CreateTailscaleClient(),
-            _ => null
-        };
+        var client = CreateClientFor(service);
 
         if (client == null)
         {
             return null;
         }
 
-        return await client.GetHealthInfoAsync();
+        try
+        {
+            return await client.GetHealthInfoAsync();
+        }
+        finally
+        {
+            // Only clients that own a connection implement IDisposable; the rest
+            // share the injected HttpClient and must not be disposed here.
+            (client as IDisposable)?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Resolves the health client for a service.
+    /// Dispatch is by compose service name first: ntopng, suricata and uptime-kuma
+    /// all classify as <see cref="ServiceType.Application"/>, so type alone cannot
+    /// tell them apart and they previously fell through to no client at all.
+    /// </summary>
+    private IServiceClient? CreateClientFor(ServiceDefinition service)
+    {
+        switch (service.Name.ToLowerInvariant())
+        {
+            case "ntopng":
+                return _clientFactory.CreateNtopngClient();
+            case "suricata":
+                return _clientFactory.CreateSuricataClient();
+            case "traefik":
+                return _clientFactory.CreateTraefikClient();
+            case "uptime-kuma":
+            case "uptime_kuma":
+                return _clientFactory.CreateUptimeKumaClient();
+        }
+
+        return service.Type switch
+        {
+            ServiceType.Dns => _clientFactory.CreateAdGuardClient(),
+            ServiceType.Vpn => _clientFactory.CreateTailscaleClient(),
+            _ => null
+        };
     }
 }

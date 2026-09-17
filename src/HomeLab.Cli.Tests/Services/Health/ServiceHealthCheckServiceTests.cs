@@ -208,4 +208,98 @@ public class ServiceHealthCheckServiceTests
         result.IsHealthy.Should().BeTrue();
         _mockClientFactory.Verify(f => f.CreateTailscaleClient(), Times.Once);
     }
+
+    private void GivenRunningContainer(string name)
+    {
+        _mockDocker.Setup(d => d.ListContainersAsync(true))
+            .ReturnsAsync(new List<ContainerInfo>
+            {
+                new() { Name = $"homelab_{name}", IsRunning = true }
+            });
+    }
+
+    private static ServiceHealthInfo HealthyInfo(string name) => new()
+    {
+        ServiceName = name,
+        IsHealthy = true,
+        Status = "Healthy",
+        Metrics = { ["probe"] = "ok" }
+    };
+
+    [Fact]
+    public async Task CheckServiceAsync_Ntopng_UsesNtopngClient()
+    {
+        GivenRunningContainer("ntopng");
+        var client = new Mock<INtopngClient>();
+        client.Setup(c => c.GetHealthInfoAsync()).ReturnsAsync(HealthyInfo("ntopng"));
+        _mockClientFactory.Setup(f => f.CreateNtopngClient()).Returns(client.Object);
+
+        var result = await _sut.CheckServiceAsync(
+            new ServiceDefinition { Name = "ntopng", Type = ServiceType.Application });
+
+        result.IsHealthy.Should().BeTrue();
+        result.Metrics.Should().ContainKey("probe");
+        _mockClientFactory.Verify(f => f.CreateNtopngClient(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CheckServiceAsync_Suricata_UsesSuricataClient()
+    {
+        GivenRunningContainer("suricata");
+        var client = new Mock<ISuricataClient>();
+        client.Setup(c => c.GetHealthInfoAsync()).ReturnsAsync(HealthyInfo("suricata"));
+        _mockClientFactory.Setup(f => f.CreateSuricataClient()).Returns(client.Object);
+
+        var result = await _sut.CheckServiceAsync(
+            new ServiceDefinition { Name = "suricata", Type = ServiceType.Application });
+
+        result.IsHealthy.Should().BeTrue();
+        _mockClientFactory.Verify(f => f.CreateSuricataClient(), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("uptime-kuma")]
+    [InlineData("uptime_kuma")]
+    public async Task CheckServiceAsync_UptimeKuma_UsesUptimeKumaClient(string serviceName)
+    {
+        // Container name must track the service name for Docker lookup to match.
+        GivenRunningContainer(serviceName);
+        // Port 1 refuses instantly, so the real client fails fast and predictably.
+        _mockClientFactory.Setup(f => f.CreateUptimeKumaClient())
+            .Returns(new HomeLab.Cli.Services.UptimeKuma.UptimeKumaClient("http://127.0.0.1:1", "", ""));
+
+        var result = await _sut.CheckServiceAsync(
+            new ServiceDefinition { Name = serviceName, Type = ServiceType.Application });
+
+        _mockClientFactory.Verify(f => f.CreateUptimeKumaClient(), Times.Once);
+        result.Message.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task CheckServiceAsync_DnsService_StillUsesAdGuardClient()
+    {
+        GivenRunningContainer("adguard");
+        var client = new Mock<IAdGuardClient>();
+        client.Setup(c => c.GetHealthInfoAsync()).ReturnsAsync(HealthyInfo("adguard"));
+        _mockClientFactory.Setup(f => f.CreateAdGuardClient()).Returns(client.Object);
+
+        var result = await _sut.CheckServiceAsync(
+            new ServiceDefinition { Name = "adguard", Type = ServiceType.Dns });
+
+        result.IsHealthy.Should().BeTrue();
+        _mockClientFactory.Verify(f => f.CreateAdGuardClient(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CheckServiceAsync_ServiceWithNoClient_ReportsRunningWithoutMetrics()
+    {
+        GivenRunningContainer("scrypted");
+
+        var result = await _sut.CheckServiceAsync(
+            new ServiceDefinition { Name = "scrypted", Type = ServiceType.Application });
+
+        result.IsRunning.Should().BeTrue();
+        result.IsHealthy.Should().BeFalse();
+        result.Metrics.Should().BeEmpty();
+    }
 }

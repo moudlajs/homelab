@@ -7,7 +7,7 @@ namespace HomeLab.Cli.Services.UptimeKuma;
 /// <summary>
 /// Client for interacting with Uptime Kuma via socket.io API.
 /// </summary>
-public class UptimeKumaClient : IDisposable
+public class UptimeKumaClient : IServiceClient, IDisposable
 {
     private readonly string _baseUrl;
     private readonly string _username;
@@ -19,6 +19,14 @@ public class UptimeKumaClient : IDisposable
         _baseUrl = baseUrl.TrimEnd('/');
         _username = username;
         _password = password;
+    }
+
+    public string ServiceName => "Uptime Kuma";
+
+    public async Task<bool> IsHealthyAsync()
+    {
+        var health = await GetHealthInfoAsync();
+        return health.IsHealthy;
     }
 
     private async Task ConnectAsync()
@@ -74,13 +82,22 @@ public class UptimeKumaClient : IDisposable
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
             var response = await http.GetAsync(_baseUrl);
-            return new ServiceHealthInfo { IsHealthy = true, Message = "Uptime Kuma is running" };
+            return new ServiceHealthInfo
+            {
+                ServiceName = ServiceName,
+                IsHealthy = response.IsSuccessStatusCode,
+                Status = response.IsSuccessStatusCode ? "Healthy" : "Unhealthy",
+                Message = $"HTTP {(int)response.StatusCode}",
+                Metrics = { ["endpoint"] = _baseUrl }
+            };
         }
         catch (Exception ex)
         {
             return new ServiceHealthInfo
             {
+                ServiceName = ServiceName,
                 IsHealthy = false,
+                Status = "Unreachable",
                 Message = $"Failed to connect: {ex.Message}"
             };
         }
