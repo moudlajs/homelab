@@ -21,4 +21,16 @@ public interface IWakeOnLanService
     /// <param name="timeoutMs">Timeout in milliseconds</param>
     /// <returns>True if device responds to ping</returns>
     Task<bool> IsReachableAsync(string ipAddress, int timeoutMs = 3000);
+
+    /// <summary>
+    /// Checks if a TCP port is accepting connections on the given host.
+    /// Unlike <see cref="IsReachableAsync"/>, this identifies a specific service
+    /// rather than merely whoever currently holds the address, so it does not
+    /// report success when an unrelated device has taken over a stale IP.
+    /// </summary>
+    /// <param name="ipAddress">IP address to probe</param>
+    /// <param name="port">TCP port to probe</param>
+    /// <param name="timeoutMs">Timeout in milliseconds</param>
+    /// <returns>True if the port accepted a connection</returns>
+    Task<bool> IsPortOpenAsync(string ipAddress, int port, int timeoutMs = 3000);
 }

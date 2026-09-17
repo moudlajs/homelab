@@ -48,7 +48,7 @@ services:
 
   uptime-kuma:
     image: louislam/uptime-kuma:latest
-    container_name: homelab_uptime_kuma
+    container_name: homelab_uptime-kuma
     restart: unless-stopped
     network_mode: host
     volumes:

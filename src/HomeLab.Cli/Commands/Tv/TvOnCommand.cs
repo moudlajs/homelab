@@ -24,6 +24,13 @@ public class TvOnCommand : AsyncCommand<TvOnCommand.Settings>
         public int KeyDelay { get; set; } = 500;
     }
 
+    /// <summary>
+    /// How long to wait for the TV to come up after the magic packet.
+    /// LG WebOS sets take roughly 20-40s to cold boot and answer on the network,
+    /// so a shorter budget reports "may still be booting" on a successful wake.
+    /// </summary>
+    private const int BootTimeoutSeconds = 60;
+
     public TvOnCommand(IWakeOnLanService wolService) => _wolService = wolService;
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -52,13 +59,13 @@ public class TvOnCommand : AsyncCommand<TvOnCommand.Settings>
 
         // Wait for TV to boot
         AnsiConsole.MarkupLine("[dim]Waiting for TV to boot...[/]");
-        var bootTimeout = DateTime.Now.AddSeconds(15);
+        var bootTimeout = DateTime.Now.AddSeconds(BootTimeoutSeconds);
         var isOnline = false;
 
         while (DateTime.Now < bootTimeout)
         {
             await Task.Delay(2000);
-            if (await _wolService.IsReachableAsync(config.IpAddress))
+            if (await TvCommandHelper.IsTvOnlineAsync(_wolService, config.IpAddress))
             {
                 isOnline = true;
                 break;

@@ -5,6 +5,25 @@ All notable changes to the HomeLab CLI project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **TV reachability no longer trusts ICMP** — `tv status`, `tv on`, `tv setup` and the
+  Telegram bot now probe the WebOS SSAP ports (3000/3001) instead of pinging the
+  configured IP. A TV whose DHCP lease had moved was reported Online because an
+  unrelated device had taken over the old address and answered the ping, while every
+  control command failed against that host.
+- **TV wake boot timeout raised from 15s to 60s** — LG WebOS sets take roughly 20-40s to
+  cold boot, so a successful wake regularly reported "TV may still be booting".
+- **`config` commands honour `development.compose_file`** — `ConfigService` hardcoded
+  `~/homelab/docker-compose.yml`, so `config view/edit/backup/restore` failed for any
+  repo located elsewhere. Backups are now kept beside the compose file, and the backup
+  directory is created only when a backup is taken rather than on every run.
+- **`uptime-kuma` reported Stopped while running** — its `container_name` was
+  `homelab_uptime_kuma`, which never matched the `uptime-kuma` service name used for
+  container lookup. Renamed to `homelab_uptime-kuma`, matching every other service.
+
 ## [1.15.0] - 2026-02-22
 
 ### Added - Speedtest, Doctor & TV Features
