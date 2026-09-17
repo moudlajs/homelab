@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **SSH.NET 2024.2.0 -> 2026.0.0** — clears [GHSA-q939-rpr3-3284](https://github.com/advisories/GHSA-q939-rpr3-3284)
+  (high severity), which surfaced as `NU1903` on every build. `dotnet list package
+  --vulnerable` is now clean. The API surface used by `SshService` is unchanged.
+
 ### Fixed
 
 - **Service health checks now report metrics** — `CheckServiceSpecificHealthAsync` only
