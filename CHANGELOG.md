@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Service health checks now report metrics** — `CheckServiceSpecificHealthAsync` only
+  resolved a client for `ServiceType.Dns` and `ServiceType.Vpn`, so ntopng, suricata and
+  uptime-kuma (all classified `Application`) fell through to no client and every row read
+  "No metrics available" despite working clients existing in `ServiceClientFactory`.
+  Dispatch is now by compose service name, falling back to type. `UptimeKumaClient`
+  implements `IServiceClient`, and clients owning a connection are disposed after use.
+
 - **TV reachability no longer trusts ICMP** — `tv status`, `tv on`, `tv setup` and the
   Telegram bot now probe the WebOS SSAP ports (3000/3001) instead of pinging the
   configured IP. A TV whose DHCP lease had moved was reported Online because an
