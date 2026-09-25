@@ -145,8 +145,8 @@ Config file at `~/.config/homelab/homelab-cli.yaml` (falls back to `./config/hom
 services:
   adguard:
     url: "http://localhost:3000"
-    username: "admin"
-    password: "admin"
+    username: "<your-adguard-username>"
+    password: "<your-adguard-password>"
     enabled: true
   ai:
     provider: "anthropic"
@@ -163,8 +163,8 @@ services:
     enabled: true
   uptime_kuma:
     url: "http://localhost:3001"
-    username: "nimda"
-    password: "nimda123"
+    username: "<your-uptime-kuma-username>"
+    password: "<your-uptime-kuma-password>"
     enabled: true
 ```
 
