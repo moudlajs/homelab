@@ -140,7 +140,7 @@ services:
   ai:
     provider: "anthropic"
     model: "claude-haiku-4-5-20251001"
-    token: "sk-ant-api03-..."
+    token: "<your-anthropic-api-key>"
     enabled: true
 ```
 
