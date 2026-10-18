@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Suricata logs no longer grow without limit** — `eve.json`, `fast.log` and `stats.log`
+  were appended to forever (1.1 GB and counting). The suricata container now runs the
+  image's cron + logrotate hourly: files rotate daily or at 100 MB, 7 compressed generations
+  are kept, and Suricata reopens its logs over the unix socket so `eve.json` keeps its path.
+  `stats.log` is written every 300s instead of 8s and EVE `stats` events, unused by the CLI,
+  are dropped. See *Log Rotation* in `docs/NETWORK_MONITORING.md`.
+
 - **Service health checks now report metrics** — `CheckServiceSpecificHealthAsync` only
   resolved a client for `ServiceType.Dns` and `ServiceType.Vpn`, so ntopng, suricata and
   uptime-kuma (all classified `Application`) fell through to no client and every row read

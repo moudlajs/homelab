@@ -316,20 +316,24 @@ suricata:
 
 ### Log Rotation
 
-Suricata logs can grow large. Configure rotation:
+Suricata logs in `data/suricata/logs/` are rotated inside the container by logrotate,
+run hourly from cron (`ENABLE_CRON=yes` in `docker-compose.yml`):
+
+- `eve.json`, `fast.log` and `stats.log` rotate daily, or as soon as one passes 100 MB
+- 7 gzip-compressed generations are kept (`eve.json.1.gz` ... `eve.json.7.gz`); older ones are deleted
+- After rotating, Suricata reopens its files via the unix socket (`suricatasc -c reopen-log-files`),
+  so `eve.json` keeps its name and the CLI's `log_path` needs no change
+
+Worst case this is roughly 100 MB live plus 7 compressed archives per file. To keep more or
+less, edit `config/suricata/logrotate.conf` (`rotate`, `maxsize`) and recreate the container.
+
+`stats.log` is written every 300 seconds (Suricata's default is 8), and EVE `stats` events are
+disabled because the CLI only reads `alert` events.
+
+Force a rotation now (for example after a burst of traffic):
 
 ```bash
-# Create logrotate config
-cat > /etc/logrotate.d/suricata <<EOF
-/path/to/homelab/data/suricata/logs/*.log {
-    daily
-    rotate 7
-    compress
-    delaycompress
-    missingok
-    notifempty
-}
-EOF
+docker exec homelab_suricata /etc/cron.hourly/suricata-logrotate
 ```
 
 ---
