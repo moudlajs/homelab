@@ -1,8 +1,16 @@
+# Cap container logs so json-file logs can't fill the OrbStack VM disk (#96)
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   adguard:
     image: adguard/adguardhome:latest
     container_name: homelab_adguard
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "3000:3000"
       - "53:53/tcp"
@@ -15,6 +23,7 @@ services:
     image: ntop/ntopng:latest
     container_name: homelab_ntopng
     restart: unless-stopped
+    logging: *default-logging
     network_mode: host
     cap_add:
       - NET_ADMIN
@@ -43,6 +52,7 @@ services:
     image: jasonish/suricata:latest
     container_name: homelab_suricata
     restart: unless-stopped
+    logging: *default-logging
     network_mode: host
     cap_add:
       - NET_ADMIN
@@ -61,6 +71,7 @@ services:
     image: koush/scrypted:latest
     container_name: homelab_scrypted
     restart: unless-stopped
+    logging: *default-logging
     network_mode: host
     volumes:
       - ./data/scrypted:/server/volume
@@ -71,6 +82,7 @@ services:
     image: louislam/uptime-kuma:latest
     container_name: homelab_uptime-kuma
     restart: unless-stopped
+    logging: *default-logging
     network_mode: host
     volumes:
       - ./data/uptime-kuma:/app/data

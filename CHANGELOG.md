@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Container logs are size-capped** — every service in `docker-compose.yml` now shares an
+  `x-logging` anchor (`json-file`, `max-size: 10m`, `max-file: 3`), so each container keeps
+  at most ~30 MB of logs instead of growing without limit inside the OrbStack VM disk.
+  Applies on the next `docker compose up -d` (containers are recreated).
+
 ### Security
 
 - **SSH.NET 2024.2.0 -> 2026.0.0** — clears [GHSA-q939-rpr3-3284](https://github.com/advisories/GHSA-q939-rpr3-3284)
