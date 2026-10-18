@@ -1,0 +1,4 @@
+#!/bin/sh
+# logrotate skips configs not owned by root, which a host bind mount may not be.
+install -o root -g root -m 0644 /etc/suricata-logrotate.conf /etc/logrotate.d/suricata
+exec logrotate /etc/logrotate.d/suricata

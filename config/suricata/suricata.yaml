@@ -15,6 +15,15 @@ vars:
 
 default-log-dir: /var/log/suricata/
 
+# Default is every 8s; stats.log only needs a coarse view.
+stats:
+  enabled: yes
+  interval: 300
+
+# Socket used by logrotate to make Suricata reopen rotated files.
+unix-command:
+  enabled: yes
+
 outputs:
   - eve-log:
       enabled: yes
@@ -26,10 +35,6 @@ outputs:
         - dns
         - tls
         - http
-        - stats:
-            totals: yes
-            threads: no
-            deltas: no
 
   - fast:
       enabled: yes
