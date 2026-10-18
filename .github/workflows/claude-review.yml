@@ -71,10 +71,12 @@ jobs:
         if: steps.draft.outputs.draft != 'true'
         with:
           fetch-depth: 0
+          # Reviewer runs dotnet build/test on PR code; keep GITHUB_TOKEN out of .git/config.
+          persist-credentials: false
           # Comment runs would check out main; review the PR instead.
           ref: ${{ github.event_name == 'issue_comment' && format('refs/pull/{0}/head', github.event.issue.number) || '' }}
 
-      # Lets the reviewer run dotnet build/test; matches ci.yml.
+      # Lets the reviewer run dotnet build/test (same .NET version as ci.yml).
       - uses: actions/setup-dotnet@v4
         if: steps.draft.outputs.draft != 'true'
         with:
