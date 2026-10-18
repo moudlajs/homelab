@@ -22,6 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `stats.log` is written every 300s instead of 8s and EVE `stats` events, unused by the CLI,
   are dropped. See *Log Rotation* in `docs/NETWORK_MONITORING.md`.
 
+- **ntopng disk use is bounded** — `data/ntopng` grew without limit (~1.8 GB) because
+  ntopng defaults to 1,000,000 alerts per family kept for 365 days. ntopng has no CLI
+  flags for retention, so the compose service now seeds its redis prefs on every start:
+  alerts kept 30 days / max 50,000 per family, timeseries 30 days (configurable via
+  `NTOPNG_*` env vars). ntopng's hourly housekeeping then trims and vacuums the existing
+  alert DBs. See [docs/NETWORK_MONITORING.md](docs/NETWORK_MONITORING.md#ntopng-data-retention).
+
 - **Service health checks now report metrics** — `CheckServiceSpecificHealthAsync` only
   resolved a client for `ServiceType.Dns` and `ServiceType.Vpn`, so ntopng, suricata and
   uptime-kuma (all classified `Application`) fell through to no client and every row read
