@@ -270,6 +270,51 @@ suricata:
   command: -i eth0  # eth0 for OrbStack/Docker VM, or your host interface
 ```
 
+### ntopng Data Retention
+
+ntopng keeps its data under `data/ntopng` (per interface: `alerts/alert_store_v11.db`
+SQLite plus RRD timeseries). Out of the box it keeps up to 1,000,000 alerts per alert
+family for 365 days, so the directory grows for a year. ntopng has no CLI flags for
+retention; the limits are preferences stored in the container's own redis, which is
+not persisted. `docker-compose.yml` therefore seeds them on every start:
+
+| Variable | Redis pref | Default here | ntopng default |
+|----------|-----------|--------------|----------------|
+| `NTOPNG_TS_RETENTION_DAYS` | `ntopng.prefs.ts_and_stats_data_retention_days` | 30 | 30 |
+| `NTOPNG_ALERT_RETENTION_DAYS` | `ntopng.prefs.max_num_secs_before_delete_alert` (seconds) | 30 | 365 |
+| `NTOPNG_MAX_ALERTS` | `ntopng.prefs.max_entity_alerts` (per alert family) | 50000 | 1000000 |
+
+Edit the values in `docker-compose.yml`, then `docker compose up -d ntopng`. Changes
+made in the web UI (Settings > Preferences) are overwritten on the next start.
+
+ntopng enforces the alert limits in its hourly housekeeping: it deletes alerts over the
+limits and then runs `VACUUM`, which shrinks `alert_store_v11.db` on disk. Timeseries for
+hosts not seen within the retention window are deleted by the daily housekeeping.
+
+**Shrinking existing data (one-off):** applying the new limits is enough; within about
+an hour of the restart the alert DBs are trimmed and vacuumed.
+
+```bash
+du -sh data/ntopng data/ntopng/*/alerts   # before
+docker compose up -d ntopng               # recreate with the new entrypoint
+docker exec homelab_ntopng redis-cli mget \
+  ntopng.prefs.ts_and_stats_data_retention_days \
+  ntopng.prefs.max_num_secs_before_delete_alert \
+  ntopng.prefs.max_entity_alerts          # expect 30 / 2592000 / 50000
+# ~1 hour later
+du -sh data/ntopng data/ntopng/*/alerts   # after
+```
+
+`VACUUM` temporarily needs free disk roughly equal to the DB size. If that space is not
+available, or you don't need the alert history, drop the alert DBs instead (ntopng
+recreates them empty on start; flows, timeseries and settings are untouched):
+
+```bash
+docker compose stop ntopng
+rm -f data/ntopng/*/alerts/alert_store_v*.db*
+docker compose up -d ntopng
+```
+
 **Finding your network interface:**
 ```bash
 # macOS/Linux
@@ -425,11 +470,7 @@ nmap --version
 **Solutions**:
 1. Add resource limits to docker-compose.yml (see Performance Tuning)
 2. Reduce Suricata rule set (if using custom rules)
-3. Clear ntopng data periodically:
-   ```bash
-   rm -rf data/ntopng/*
-   docker-compose restart ntopng
-   ```
+3. Lower ntopng retention (see [ntopng Data Retention](#ntopng-data-retention))
 
 ### Permission Denied
 
@@ -505,7 +546,7 @@ Network monitoring data can contain sensitive information:
 
 1. **Limit retention period**:
    - Rotate logs daily/weekly
-   - Delete old ntopng data
+   - Tune ntopng retention (see [ntopng Data Retention](#ntopng-data-retention))
    - Don't export sensitive data to insecure locations
 
 2. **Secure export files**:

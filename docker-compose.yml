@@ -20,6 +20,23 @@ services:
       - NET_ADMIN
     volumes:
       - ./data/ntopng:/var/lib/ntopng
+    # Retention has no CLI flags; it lives in redis prefs, seeded here on every start.
+    # See docs/NETWORK_MONITORING.md#ntopng-data-retention
+    environment:
+      NTOPNG_TS_RETENTION_DAYS: "30"
+      NTOPNG_ALERT_RETENTION_DAYS: "30"
+      NTOPNG_MAX_ALERTS: "50000"
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        /etc/init.d/redis-server start
+        until redis-cli ping >/dev/null 2>&1; do sleep 0.5; done
+        redis-cli set ntopng.prefs.ts_and_stats_data_retention_days "$$NTOPNG_TS_RETENTION_DAYS" >/dev/null
+        redis-cli set ntopng.prefs.max_num_secs_before_delete_alert "$$((NTOPNG_ALERT_RETENTION_DAYS * 86400))" >/dev/null
+        redis-cli set ntopng.prefs.max_entity_alerts "$$NTOPNG_MAX_ALERTS" >/dev/null
+        exec ntopng "$$@" $$NTOP_CONFIG
+      - ntopng
     command: --community --http-port 3002 --disable-login 1
 
   suricata:
