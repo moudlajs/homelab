@@ -35,6 +35,8 @@ Docker services managed via `docker-compose.yml`:
 | Scrypted | 11080 | Camera/NVR management (WebUI) |
 | Uptime Kuma | 3001 | Service uptime monitoring |
 
+Container logs are capped at 3 x 10 MB per service (shared `x-logging` anchor in `docker-compose.yml`).
+
 ## Commands
 
 Run `homelab` with no args for interactive shell with tab completion.
