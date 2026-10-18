@@ -17,10 +17,28 @@
 ## Non-Negotiable Rules
 
 ### 1. PR Workflow (ENFORCED by branch protection)
+Read `CONTRIBUTING.md`. The flow applies to Claude too:
+
 - **NEVER commit directly to `main`**
-- Create feature branch: `feature/name`, `fix/name`, `chore/name`
-- All changes go through PR with CI validation
-- Branch protection requires: CI passing, code formatting
+- Issue first, then branch `<type>/<short-description>` (`feat/tv-input`, `fix/dns-stats`, `ci/claude-review`)
+- Open a **draft** PR (`Closes #N`); CI runs on every push, the reviewer does not
+- `gh pr ready <n>` when done: fires the independent Claude review (`.github/workflows/claude-review.yml`); non-draft PRs are re-reviewed on every push
+- Answer and resolve every review thread, then squash-merge only when CI and `review` are green
+- No `Co-Authored-By: Claude` trailers or "Generated with Claude Code" footers, in branch commits, PR bodies or review comments
+
+```bash
+git switch -c feat/<thing>
+gh pr create --draft --title "feat(scope): ..." --body "Closes #N ..."
+gh pr checks <n> --watch
+gh pr ready <n>
+gh pr merge <n> --squash      # only when all checks green, threads resolved
+```
+
+#### Independent review
+- The review job needs the repo secret `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`, set by the owner).
+- **Drafts are skipped only when the event payload AND the live API both say draft.** A skipped required check counts as passing; never move the draft check into the job-level `if`.
+- **The action can exit green without reviewing**, so the last step fails unless `claude[bot]` posted a comment starting `## Claude review of <head sha>` (with no attribution footer).
+- **PRs that change `claude-review.yml` cannot be reviewed by the action.** Keep them to that file plus top-level `*.md`. Before merging, have a fresh subagent that did not write the change review it, post the result with `gh pr comment` as `moudlajs` with the first line exactly `## Independent review (manual - <full head sha>)`, address it, then re-run the `review` job. Any new push needs a new manual review.
 
 ### 2. Code Quality Gates
 ```bash
@@ -37,6 +55,7 @@ docs: documentation only
 chore: maintenance (deps, cleanup)
 test: add/update tests
 refactor: code restructuring
+ci: workflows
 ```
 
 ### 4. Testing Requirements
