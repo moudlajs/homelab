@@ -41,7 +41,7 @@ outputs:
       filename: fast.log
 
   - stats:
-      enabled: yes
+      enabled: no
       filename: stats.log
       append: yes
       totals: yes
